@@ -16,9 +16,11 @@ from pathlib import Path
 from collections import defaultdict
 from datetime import datetime
 
-# 加载 .env 环境变量
+# 加载 .env 环境变量（从项目根目录）
 def load_env():
-    env_path = Path(__file__).parent / '.env'
+    # 获取项目根目录（tools/ 的上级目录）
+    project_root = Path(__file__).parent.parent
+    env_path = project_root / '.env'
     if env_path.exists():
         with open(env_path) as f:
             for line in f:
@@ -29,17 +31,22 @@ def load_env():
 
 load_env()
 
+# 将脚本所在项目的根目录添加到 Python 路径，确保可以导入 src 模块
+# （需要在切换工作目录之前完成）
+script_dir = Path(__file__).parent
+ai_analyze_root = script_dir.parent
+if str(ai_analyze_root) not in sys.path:
+    sys.path.insert(0, str(ai_analyze_root))
+
 PROJECT_PATH = os.getenv('PROJECT_PATH')
 if not PROJECT_PATH:
     PROJECT_PATH = os.getcwd()
+else:
+    # 展开 ~ 为实际的家目录路径
+    PROJECT_PATH = os.path.expanduser(PROJECT_PATH)
 
 # 切换到项目目录
 os.chdir(PROJECT_PATH)
-
-# 将项目根目录添加到 Python 路径，确保可以导入 src 模块
-project_root = Path(PROJECT_PATH)
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
 
 # 多语言配置
 LANGUAGES_CONFIG = {
@@ -658,10 +665,10 @@ async def main():
         if args.output:
             output_path = Path(args.output)
         else:
-            # 默认保存到 reports 目录，带项目名和时间戳
-            output_dir = Path('reports')
+            # 默认保存到 ai-analyze/reports 目录，带项目名和日期戳
+            output_dir = ai_analyze_root / 'reports'
             output_dir.mkdir(parents=True, exist_ok=True)
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now().strftime("%Y%m%d")
             filename = f"{project_name}_analysis_{timestamp}.md"
             output_path = output_dir / filename
         
