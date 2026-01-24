@@ -325,6 +325,29 @@ analyze-json:
 	@$(PYTHON) tools/analyze_project_multilang.py --format json
 	@echo -e "$(GREEN)✓ 分析完成，报告见 serena_analysis_report.json$(NC)"
 
+## analyze-ai: 一键 AI 增强分析（Serena + DeepSeek）
+analyze-ai:
+	@echo -e "$(GREEN)🤖 开始 AI 增强代码分析（Serena + DeepSeek）...$(NC)"
+	@$(PYTHON) tools/analyze_with_ai.py
+
+## analyze-ai-only: 对已有的 Serena 报告进行 AI 增强分析
+analyze-ai-only:
+	@echo -e "$(YELLOW)⚠️  请指定报告路径: make analyze-ai-only REPORT=path/to/report.json$(NC)"
+
+## analyze-ai-only: 对已有的 Serena 报告进行 AI 增强分析（带参数）
+analyze-ai-only-report:
+	@if [ -z "$(REPORT)" ]; then \
+		echo -e "$(YELLOW)⚠️  请指定报告路径: make analyze-ai-only REPORT=path/to/report.json$(NC)"; \
+		exit 1; \
+	fi
+	@echo -e "$(GREEN)🤖 对指定报告进行 AI 增强分析...$(NC)"
+	@$(PYTHON) tools/analyze_with_ai.py --ai-only --report "$(REPORT)"
+
+## analyze-skip-ai: 只运行 Serena 分析，跳过 AI 增强
+analyze-skip-ai:
+	@echo -e "$(GREEN)🔍 运行 Serena 分析（跳过 AI 增强）...$(NC)"
+	@$(PYTHON) tools/analyze_with_ai.py --skip-ai
+
 ## version: 显示版本信息
 version:
 	@echo -e "$(CYAN)Serena MCP Client$(NC)"
