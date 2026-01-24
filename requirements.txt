@@ -1,0 +1,18 @@
+# Serena MCP 客户端依赖
+# 安装命令: pip install -r requirements.txt
+# 注意: 推荐使用 pip install -e . 安装项目包
+
+# 核心依赖
+httpx>=0.24.0
+python-dotenv>=1.0.0
+
+# 可选依赖 (用于更好的开发体验)
+# pyperclip>=1.9.0  # 剪贴板操作 (可选)
+# rich>=13.7.0      # 更好的终端输出 (可选)
+
+# 开发依赖 (安装: pip install -e .[dev])
+# pytest>=7.0.0
+# pytest-asyncio>=0.21.0
+# black>=23.0.0
+# flake8>=6.0.0
+# mypy>=1.0.0
