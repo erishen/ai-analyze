@@ -5,6 +5,7 @@ AI 增强代码分析器
 """
 
 import os
+import sys
 import json
 from pathlib import Path
 from typing import Dict, List, Any, Optional
@@ -16,36 +17,56 @@ script_dir = Path(__file__).parent
 ai_analyze_root = script_dir.parent
 load_dotenv(ai_analyze_root / '.env')
 
+# 导入 Docker 生成器
+sys.path.insert(0, str(script_dir))
+from docker_generator import DockerGenerator
+
 class AIEnhancedAnalyzer:
     """AI 增强代码分析器"""
-    
-    def __init__(self):
+
+    def __init__(self, use_cache: bool = True, cache_ttl: int = 3600):
         # 配置 deepseek API
         self.api_key = os.getenv("OPENAI_API_KEY")
         self.base_url = os.getenv("OPENAI_BASE_URL", "https://api.deepseek.com")
         self.model = os.getenv("OPENAI_MODEL", "deepseek-chat")
-        
+
         if not self.api_key:
             raise ValueError("请设置 OPENAI_API_KEY 环境变量")
-        
+
         self.client = openai.OpenAI(
             api_key=self.api_key,
             base_url=self.base_url
         )
+
+        # 缓存配置
+        self.use_cache = use_cache
+        self.cache_ttl = cache_ttl  # 默认缓存有效期 1 小时（3600 秒）
+        self.cache_dir = Path(__file__).parent.parent / ".cache"
+        self.cache_dir.mkdir(exist_ok=True)
     
     def analyze_code_quality(self, analysis_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         AI 分析代码质量
-        
+
         Args:
             analysis_data: Serena 分析得到的代码结构数据
-            
+
         Returns:
             AI 分析结果，包括质量评估、建议等
         """
         # 准备提示词
         prompt = self._prepare_quality_analysis_prompt(analysis_data)
-        
+
+        # 尝试从缓存获取
+        project_path = analysis_data.get("project_path", "")
+        cache_key = self._generate_cache_key(project_path, "code_quality")
+        cached_result = self._get_cache(cache_key)
+
+        if cached_result:
+            print("✅ 从缓存加载代码质量分析结果")
+            return cached_result
+
+        # 缓存未命中，调用 AI
         try:
             response = self.client.chat.completions.create(
                 model=self.model,
@@ -56,10 +77,14 @@ class AIEnhancedAnalyzer:
                 temperature=0.3,
                 max_tokens=4000
             )
-            
+
             ai_analysis = response.choices[0].message.content
-            return self._parse_ai_analysis(ai_analysis)
-            
+            result = self._parse_ai_analysis(ai_analysis)
+
+            # 保存到缓存
+            self._save_cache(cache_key, result)
+            return result
+
         except Exception as e:
             return {
                 "error": f"AI 分析失败: {str(e)}",
@@ -232,14 +257,15 @@ class AIEnhancedAnalyzer:
         
         return recommendations
     
-    def enhance_report(self, serena_report_path: str, output_path: Optional[str] = None) -> str:
+    def enhance_report(self, serena_report_path: str, output_path: Optional[str] = None, replace_original: bool = False) -> str:
         """
         增强 Serena 分析报告，添加 AI 分析结果
-        
+
         Args:
             serena_report_path: Serena 生成的 JSON 报告路径
             output_path: 增强报告的输出路径
-            
+            replace_original: 是否替换原始 Markdown 报告（默认创建新的 -ai.md 文件）
+
         Returns:
             增强后的报告内容
         """
@@ -247,24 +273,131 @@ class AIEnhancedAnalyzer:
         with open(serena_report_path, 'r', encoding='utf-8') as f:
             analysis_data = json.load(f)
         
+        # 获取项目路径
+        project_path = analysis_data.get('project_path', '')
+        
+        # 预定义变量，避免 f-string 中的反斜杠问题（必须在所有 f-string 之前定义）
+        project_name_simple = Path(project_path).name
+        
+        # 检查 Docker 配置
+        print("🐳 检查 Docker 配置...")
+        docker_generator = DockerGenerator(project_path)
+        has_docker, existing_files = docker_generator.has_docker_config()
+
+        # 预定义项目类型
+        project_type_simple = docker_generator.detect_project_type(analysis_data)
+
+        # 预定义变量（避免 f-string 错误）
+        project_name = project_name_simple  # 已在前面定义
+
         # 获取 AI 分析
         print("🤖 正在进行 AI 深度代码分析...")
         ai_results = self.analyze_code_quality(analysis_data)
-        
+
+        # AI Docker 策略分析
+        print("🐳 正在进行 AI Docker 策略分析...")
+        if "error" not in ai_results:
+            ai_docker_strategy = self.analyze_docker_strategy(analysis_data, ai_results.get("raw_analysis", ""))
+        else:
+            ai_docker_strategy = {"error": "AI 代码质量分析失败，无法分析 Docker 策略"}
+
+        # AI Docker 策略建议
+        ai_docker_recommendations = []
+        if "error" not in ai_docker_strategy:
+            ai_docker_recommendations = ai_docker_strategy.get("recommendations", [])
+            ai_base_image = ai_docker_strategy.get("base_image")
+            ai_port = ai_docker_strategy.get("recommended_port")
+            ai_needs_db = ai_docker_strategy.get("needs_database", False)
+        else:
+            ai_base_image = None
+            ai_port = None
+            ai_needs_db = False
+
+        # 简化 Docker 配置部分，只显示当前状态和 AI 建议，不生成配置
+        if has_docker:
+            print(f"✅ 项目已存在 Docker 配置: {', '.join(existing_files)}")
+            docker_section = f"""## 🐳 Docker 配置
+
+项目已包含 Docker 配置文件：{', '.join(existing_files)}
+
+### 快速启动
+```bash
+# 构建镜像
+docker build -t {project_name}:latest .
+
+# 运行容器
+docker run -d -p 3000:3000 {project_name}:latest
+
+# 或使用 docker-compose
+docker-compose up -d
+```
+"""
+        else:
+            print("⚠️  项目未找到 Docker 配置")
+            docker_section = """## 🐳 Docker 配置
+
+⚠️ 项目未找到 Docker 配置。请在 `full_analyzer.py` 的步骤 3 中生成 Docker 配置。
+
+### 手动创建
+
+请根据项目类型手动创建 Dockerfile：
+
+1. **识别项目类型**: {project_type}
+2. **创建 Dockerfile**: 参考官方文档
+3. **构建镜像**: `docker build -t {project_name}:latest .`
+4. **运行容器**: `docker run -d -p 3000:3000 {project_name}:latest`
+
+### 快速参考
+
+**Next.js**: https://github.com/vercel/next.js/tree/canary/examples/with-docker
+**FastAPI**: https://fastapi.tiangolo.com/deployment/docker/
+**Django**: https://docs.djangoproject.com/en/4.2/howto/deployment/
+"""
+
+        # 添加 AI Docker 策略建议
+        if "error" not in ai_docker_strategy and ai_docker_recommendations:
+            ai_docker_suggestions = f"""
+基于 AI 分析，以下 Docker 配置建议：
+
+{chr(10).join(f'- {rec}' for rec in ai_docker_recommendations[:8])}
+
+**推荐基础镜像**: {ai_base_image or '基于项目类型自动选择'}
+**推荐端口**: {ai_port or '默认（3000）'}
+**数据库需求**: {'✅ 需要' if ai_needs_db else '❌ 无需数据库服务'}
+
+"""
+            docker_section = docker_section + ai_docker_suggestions
+
+        # 如果 AI Docker 策略分析成功，打印总结
+        if "error" not in ai_docker_strategy:
+            print(f"✅ AI Docker 策略分析完成")
+            print(f"   - 推荐基础镜像: {ai_docker_strategy.get('base_image', '默认')}")
+            print(f"   - 推荐端口: {ai_docker_strategy.get('recommended_port', '默认')}")
+            print(f"   - 建议: {len(ai_docker_strategy.get('recommendations', []))} 条")
+
         if "error" in ai_results:
             print(f"⚠️  AI 分析警告: {ai_results['error']}")
             ai_markdown = "\n## ⚠️ AI 分析暂时不可用\n\n请检查 API 配置或网络连接。\n"
         else:
             # 生成 AI 分析的 Markdown 内容
             ai_markdown = self._generate_ai_markdown(ai_results)
-        
+
         # 读取原始的 Markdown 报告
         md_path = serena_report_path.replace('.json', '.md')
         with open(md_path, 'r', encoding='utf-8') as f:
             original_md = f.read()
         
-        # 在原始报告后添加 AI 分析
+        # 生成 AI Docker 策略 Markdown
+        docker_strategy_md = ""
+        if "error" not in ai_docker_strategy:
+            docker_strategy_md = self._generate_docker_strategy_markdown(ai_docker_strategy)
+        
+        # 在原始报告后添加 AI 分析和 Docker 配置
         enhanced_report = f"""{original_md}
+
+{docker_section}
+
+{docker_strategy_md}
 
 {ai_markdown}
 
@@ -276,16 +409,355 @@ class AIEnhancedAnalyzer:
         # 保存增强后的报告
         if output_path:
             output_file = Path(output_path)
+        elif replace_original:
+            # 替换原始报告
+            output_file = Path(md_path)
         else:
-            # 默认在原文件名后添加 -ai-enhanced
+            # 默认在原文件名后添加 -ai
             output_file = Path(md_path.replace('.md', '-ai.md'))
-        
+
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write(enhanced_report)
-        
+
         print(f"✅ AI 增强报告已保存至: {output_file}")
-        
+
         return enhanced_report
+    
+    def analyze_docker_strategy(self, analysis_data: Dict[str, Any], ai_analysis: str) -> Dict[str, Any]:
+        """
+        AI 分析 Docker 部署策略
+
+        Args:
+            analysis_data: Serena 分析数据
+            ai_analysis: AI 对代码质量的分析结果
+
+        Returns:
+            Docker 部署策略建议
+        """
+        project_path = analysis_data.get("project_path", "")
+        languages = analysis_data.get("languages", {})
+        symbols = analysis_data.get("symbols_overview", [])
+
+        # 尝试从缓存获取
+        cache_key = self._generate_cache_key(project_path, "docker_strategy")
+        cached_result = self._get_cache(cache_key)
+
+        if cached_result:
+            print("✅ 从缓存加载 Docker 策略分析结果")
+            return cached_result
+
+        # 准备提示词
+        prompt = self._prepare_docker_strategy_prompt(analysis_data, ai_analysis)
+
+        # 缓存未命中，调用 AI
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": "你是一位经验丰富的 DevOps 工程师和云原生架构师。请基于项目分析数据，给出专业的 Docker 部署策略、容器优化建议和最佳实践。"},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.2,  # 降低随机性，确保技术准确性
+                max_tokens=3000
+            )
+
+            ai_docker_strategy = response.choices[0].message.content
+            result = self._parse_docker_strategy(ai_docker_strategy, analysis_data)
+
+            # 保存到缓存
+            self._save_cache(cache_key, result)
+            return result
+
+        except Exception as e:
+            return {
+                "error": f"Docker 策略分析失败: {str(e)}",
+                "strategy": None,
+                "recommendations": []
+            }
+    
+    def _prepare_docker_strategy_prompt(self, analysis_data: Dict[str, Any], ai_analysis: str) -> str:
+        """准备 Docker 策略分析的提示词"""
+        
+        project_path = analysis_data.get("project_path", "")
+        languages = analysis_data.get("languages", {})
+        dir_stats = analysis_data.get("directory_structure", {})
+        
+        # 检查关键文件
+        project_root = Path(project_path)
+        key_files = {
+            "package.json": (project_root / "package.json").exists(),
+            "requirements.txt": (project_root / "requirements.txt").exists(),
+            "pyproject.toml": (project_root / "pyproject.toml").exists(),
+            "go.mod": (project_root / "go.mod").exists(),
+            "composer.json": (project_root / "composer.json").exists(),
+            ".env": (project_root / ".env").exists(),
+            "Dockerfile": (project_root / "Dockerfile").exists(),
+            "docker-compose.yml": (project_root / "docker-compose.yml").exists()
+        }
+        
+        # 检查可能的数据库
+        db_indicators = []
+        if (project_root / ".env").exists():
+            env_content = (project_root / ".env").read_text().lower()
+            if "postgres" in env_content:
+                db_indicators.append("PostgreSQL")
+            if "mysql" in env_content:
+                db_indicators.append("MySQL")
+            if "mongodb" in env_content:
+                db_indicators.append("MongoDB")
+            if "redis" in env_content:
+                db_indicators.append("Redis")
+        
+        # 检查依赖文件内容
+        dependencies = []
+        if (project_root / "package.json").exists():
+            try:
+                with open(project_root / "package.json") as f:
+                    package_data = json.load(f)
+                    deps = {**package_data.get('dependencies', {}), **package_data.get('devDependencies', {})}
+                    dependencies.extend([f"{name}:{version}" for name, version in list(deps.items())[:10]])
+            except:
+                pass
+        elif (project_root / "requirements.txt").exists():
+            try:
+                content = (project_root / "requirements.txt").read_text()
+                dependencies.extend([line.strip() for line in content.split('\n')[:10] if line.strip() and not line.startswith('#')])
+            except:
+                pass
+        
+        prompt = f"""请基于以下项目分析数据，为该项目设计最佳的 Docker 部署策略和容器化方案：
+
+## 📁 项目基本信息
+- **项目路径**: {project_path}
+- **主要语言**: {', '.join(languages.keys()) if languages else '未知'}
+- **总文件数**: {sum(languages.values())}
+
+## 📦 依赖和配置
+
+### 关键文件
+{chr(10).join([f'- {file}: {"✅ 存在" if exists else "❌ 不存在"}' for file, exists in key_files.items()])}
+
+### 数据库/缓存
+{chr(10).join([f'- {db}' for db in db_indicators]) if db_indicators else "- 未检测到数据库配置"}
+
+### 主要依赖（前10个）
+{chr(10).join([f'- {dep}' for dep in dependencies]) if dependencies else "- 无法读取依赖"}
+
+## 📂 目录结构（前10个）
+{chr(10).join([f'- {dir_path} ({file_count}个文件)' for dir_path, file_count in sorted(dir_stats.items(), key=lambda x: x[1], reverse=True)[:10]]) if dir_stats else "- 暂无目录信息"}
+
+## 🤖 AI 代码质量分析摘要
+```
+{ai_analysis[:1500]}  # 截取前1500字符
+...
+```
+
+## 🎯 分析要求
+
+请从以下维度设计 Docker 部署策略：
+
+### 1. **基础镜像选择**
+   - 推荐的基础镜像和版本（alpine、slim、distroless 等）
+   - 选择理由（安全性、镜像大小、性能等）
+
+### 2. **多阶段构建策略**
+   - 是否需要多阶段构建
+   - 各阶段的分层优化建议
+   - 最终镜像大小优化目标
+
+### 3. **运行时配置**
+   - 推荐端口配置
+   - 环境变量管理方案
+   - 用户权限最佳实践（非 root 运行）
+
+### 4. **依赖安装优化**
+   - 缓存层优化策略
+   - 依赖安装顺序建议
+   - 减少镜像层的技巧
+
+### 5. **健康检查配置**
+   - 健康检查端点建议
+   - 合理的检查间隔和超时时间
+
+### 6. **数据库/缓存服务**
+   - 是否需要数据库服务
+   - 推荐使用 docker-compose 还是外部服务
+   - 数据持久化策略
+
+### 7. **性能和安全优化**
+   - 镜像安全扫描建议
+   - CVE 漏洞修复方案
+   - 资源限制建议（CPU、内存）
+
+### 8. **生产环境注意事项**
+   - 日志管理方案
+   - 监控和告警建议
+   - 自动扩缩容考虑
+
+### 9. **CI/CD 集成**
+   - 与 GitHub Actions/GitLab CI 集成建议
+   - 镜像构建和推送策略
+   - 多环境部署方案
+
+### 10. **替代方案**
+    - 除了 Docker，是否适合其他部署方式（如 serverless、PaaS 等）
+
+请提供具体、可操作、符合云原生最佳实践的建议。"""
+        
+        return prompt
+    
+    def _parse_docker_strategy(self, strategy_text: str, analysis_data: Dict[str, Any]) -> Dict[str, Any]:
+        """解析 Docker 策略分析结果"""
+        
+        # 提取关键信息
+        import re
+        
+        # 提取基础镜像建议（支持多种格式）
+        # 优先匹配 FROM 语句
+        base_image = None
+        # 尝试匹配 FROM node:22-alpine 格式
+        from_match = re.search(r'FROM\s+([a-z0-9/_:.:-]+)', strategy_text, re.IGNORECASE)
+        if from_match:
+            base_image = from_match.group(1)
+            print(f"✅ 从 FROM 语句提取基础镜像: {base_image}")
+        else:
+            # 如果没有 FROM 语句，尝试匹配中文描述
+            base_image_match = re.search(r'(?:基础镜像|推荐镜像)[:：\s]*([a-z0-9/_:.:-]+)', strategy_text, re.IGNORECASE)
+            if base_image_match:
+                base_image = base_image_match.group(1)
+                print(f"✅ 从中文描述提取基础镜像: {base_image}")
+            else:
+                print(f"⚠️  未找到基础镜像建议")
+
+        # 提取端口建议（支持多种格式）
+        port = None
+        # 尝试匹配 EXPOSE 语句
+        expose_match = re.search(r'EXPOSE\s*(\d+)', strategy_text, re.IGNORECASE)
+        if expose_match:
+            port = int(expose_match.group(1))
+            print(f"✅ 从 EXPOSE 语句提取端口: {port}")
+        else:
+            # 尝试匹配中文描述
+            port_match = re.search(r'(?:端口|PORT)[:：\s]*(\d+)', strategy_text, re.IGNORECASE)
+            if port_match:
+                port = int(port_match.group(1))
+                print(f"✅ 从中文描述提取端口: {port}")
+            else:
+                print(f"⚠️  未找到端口建议")
+
+        # 提取是否需要数据库
+        needs_db = bool(re.search(r'(数据库|mysql|postgres|mongodb)', strategy_text, re.IGNORECASE))
+        if needs_db:
+            print(f"✅ 检测到数据库需求")
+
+        # 提取多阶段构建建议
+        multi_stage = bool(re.search(r'(多阶段构建|multi-stage)', strategy_text, re.IGNORECASE))
+        if multi_stage:
+            print(f"✅ 检测到多阶段构建建议")
+
+        # 提取镜像大小目标（支持更灵活的格式）
+        # 匹配如 "目标 < 150MB"、"200-300MB"、"300MB" 等格式
+        target_size = None
+        size_match = re.search(r'(?:镜像大小|目标)[:：\s]*(?:<?\s*)?(\d+(?:-\d+)?\s*MB)', strategy_text, re.IGNORECASE)
+        if size_match:
+            target_size = size_match.group(1)
+            print(f"✅ 提取镜像大小目标: {target_size}")
+        else:
+            print(f"⚠️  未找到镜像大小目标")
+        
+        return {
+            "strategy": strategy_text,
+            "base_image": base_image,
+            "recommended_port": port,
+            "needs_database": needs_db,
+            "multi_stage_build": multi_stage,
+            "target_image_size": target_size,
+            "recommendations": self._extract_docker_recommendations(strategy_text)
+        }
+    
+    def _extract_docker_recommendations(self, text: str) -> List[str]:
+        """提取 Docker 相关建议"""
+        
+        recommendations = []
+        lines = text.split('\n')
+        in_recs = False
+        
+        for line in lines:
+            # 检测建议部分的开始
+            if any(keyword in line.lower() for keyword in ['建议', '推荐', '最佳实践', '优化']):
+                in_recs = True
+            elif in_recs and line.strip().startswith(('-', '•', '*', '1.', '2.', '3.')):
+                # 提取列表项
+                rec = line.strip().lstrip('-•*1234567890. ').strip()
+                if rec:
+                    recommendations.append(rec)
+            elif in_recs and line.strip() == '' and recommendations:
+                # 空行表示部分结束
+                break
+        
+        return recommendations
+    
+    def _generate_docker_strategy_markdown(self, docker_strategy: Dict[str, Any]) -> str:
+        """生成 AI Docker 策略分析的 Markdown 内容"""
+        
+        if "error" in docker_strategy:
+            return f"""## 🐳 AI Docker 部署策略
+
+⚠️ {docker_strategy['error']}
+
+### 默认配置
+
+使用基于规则的 Docker 配置生成。
+"""
+        
+        md = f"""## 🐳 AI Docker 部署策略
+
+基于 AI 深度分析，为该项目推荐以下 Docker 部署方案：
+
+### 📋 策略概览
+
+- **推荐基础镜像**: {docker_strategy.get('base_image', '基于项目类型自动选择')}
+- **推荐端口**: {docker_strategy.get('recommended_port', '默认')}
+- **多阶段构建**: {'✅ 推荐' if docker_strategy.get('multi_stage_build') else '❌ 无需'}
+- **数据库需求**: {'✅ 需要' if docker_strategy.get('needs_database') else '❌ 无需数据库服务'}
+- **镜像大小目标**: {docker_strategy.get('target_image_size', '未指定')}
+
+### 💡 AI 优化建议
+
+"""
+        
+        recommendations = docker_strategy.get("recommendations", [])
+        if recommendations:
+            for i, rec in enumerate(recommendations[:8], 1):  # 显示前8条
+                md += f"{i}. {rec}\n"
+            if len(recommendations) > 8:
+                md += f"\n*还有 {len(recommendations) - 8} 条优化建议*\n"
+        else:
+            md += "AI 未提供具体优化建议，将使用默认配置。\n"
+        
+        md += f"""
+### 🔧 技术细节
+
+<details>
+<summary>查看详细策略分析</summary>
+
+```
+{docker_strategy.get('strategy', '暂无详细策略')}
+```
+</details>
+
+### ✅ 已应用的优化
+
+以上建议已自动应用到生成的 Docker 配置中，包括：
+- Dockerfile 优化
+- docker-compose.yml 配置
+- 端口映射和依赖管理
+
+---
+
+"""
+        
+        return md
     
     def _generate_ai_markdown(self, ai_results: Dict[str, Any]) -> str:
         """生成 AI 分析的 Markdown 内容"""
@@ -316,22 +788,145 @@ class AIEnhancedAnalyzer:
         
         return md
 
+    def _generate_cache_key(self, project_path: str, analysis_type: str) -> str:
+        """生成缓存键"""
+        # 使用项目路径的 hash + 分析类型作为键
+        import hashlib
+        path_hash = hashlib.md5(project_path.encode()).hexdigest()[:12]
+        return f"{path_hash}_{analysis_type}.json"
+
+    def _get_cache(self, cache_key: str) -> Optional[Dict[str, Any]]:
+        """从缓存获取数据"""
+        if not self.use_cache:
+            return None
+
+        cache_file = self.cache_dir / cache_key
+
+        if not cache_file.exists():
+            return None
+
+        try:
+            with open(cache_file, 'r', encoding='utf-8') as f:
+                cache_data = json.load(f)
+
+            # 检查缓存是否过期
+            import time
+            current_time = time.time()
+            if current_time - cache_data.get('timestamp', 0) > self.cache_ttl:
+                print(f"⚠️  缓存已过期: {cache_key}")
+                return None
+
+            return cache_data.get('data')
+
+        except Exception as e:
+            print(f"⚠️  读取缓存失败: {str(e)}")
+            return None
+
+    def _save_cache(self, cache_key: str, data: Dict[str, Any]) -> None:
+        """保存数据到缓存"""
+        if not self.use_cache:
+            return
+
+        cache_file = self.cache_dir / cache_key
+
+        try:
+            import time
+            cache_data = {
+                'timestamp': time.time(),
+                'data': data
+            }
+
+            with open(cache_file, 'w', encoding='utf-8') as f:
+                json.dump(cache_data, f, ensure_ascii=False, indent=2)
+
+            print(f"💾 已保存缓存: {cache_key}")
+
+        except Exception as e:
+            print(f"⚠️  保存缓存失败: {str(e)}")
+
+    def clear_cache(self, project_path: Optional[str] = None) -> int:
+        """
+        清除缓存
+
+        Args:
+            project_path: 如果指定，只清除该项目的缓存；否则清除所有缓存
+
+        Returns:
+            清除的缓存文件数量
+        """
+        if not self.cache_dir.exists():
+            return 0
+
+        if project_path:
+            # 清除特定项目的缓存
+            import hashlib
+            path_hash = hashlib.md5(project_path.encode()).hexdigest()[:12]
+            cache_files = [
+                self.cache_dir / f"{path_hash}_code_quality.json",
+                self.cache_dir / f"{path_hash}_docker_strategy.json"
+            ]
+        else:
+            # 清除所有缓存
+            cache_files = list(self.cache_dir.glob("*.json"))
+
+        deleted_count = 0
+        for cache_file in cache_files:
+            try:
+                cache_file.unlink()
+                deleted_count += 1
+                print(f"🗑️  已删除缓存: {cache_file.name}")
+            except Exception as e:
+                print(f"⚠️  删除缓存失败: {cache_file.name} - {str(e)}")
+
+        return deleted_count
+
 
 def main():
     """命令行接口"""
     import argparse
-    
+
     parser = argparse.ArgumentParser(description="AI 增强代码分析器")
-    parser.add_argument("report_path", help="Serena 生成的 JSON 报告路径")
+    parser.add_argument("report_path", nargs='?', help="Serena 生成的 JSON 报告路径（用于分析模式）")
     parser.add_argument("-o", "--output", help="增强报告的输出路径（可选）")
-    
+    parser.add_argument("--replace", "-r", action="store_true",
+                        help="替换原始 Markdown 报告，而不是创建新的 -ai.md 文件")
+    parser.add_argument("--no-cache", action="store_true",
+                        help="禁用缓存，强制调用 AI API")
+    parser.add_argument("--clear-cache", action="store_true",
+                        help="清除所有缓存后退出")
+    parser.add_argument("--clear-project-cache", help="清除指定项目的缓存（提供项目路径）")
+    parser.add_argument("--cache-ttl", type=int, default=3600,
+                        help="缓存有效期（秒），默认 3600 秒（1 小时）")
+
     args = parser.parse_args()
-    
+
     try:
-        analyzer = AIEnhancedAnalyzer()
-        analyzer.enhance_report(args.report_path, args.output)
+        analyzer = AIEnhancedAnalyzer(
+            use_cache=not args.no_cache,
+            cache_ttl=args.cache_ttl
+        )
+
+        # 处理清除缓存的命令
+        if args.clear_cache:
+            count = analyzer.clear_cache()
+            print(f"✅ 已清除 {count} 个缓存文件")
+            return
+
+        if args.clear_project_cache:
+            count = analyzer.clear_cache(args.clear_project_cache)
+            print(f"✅ 已清除项目的 {count} 个缓存文件")
+            return
+
+        # 检查是否提供了报告路径
+        if not args.report_path:
+            parser.error("需要提供 report_path 参数，或使用 --clear-cache/--clear-project-cache 选项")
+
+        analyzer.enhance_report(args.report_path, args.output, replace_original=args.replace)
+
     except Exception as e:
         print(f"❌ 错误: {e}")
+        import traceback
+        traceback.print_exc()
         exit(1)
 
 

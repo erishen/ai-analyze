@@ -1,7 +1,7 @@
 # Makefile for Serena MCP Client
 # 提供便捷的项目管理命令
 
-.PHONY: help install init test clean clean-reports lint format format-check conda-create conda-activate conda-install conda-update conda-remove conda-export conda-list
+.PHONY: help install init test clean clean-reports clean-target lint format format-check conda-create conda-activate conda-install conda-update conda-remove conda-export conda-list docker-build docker-run docker-verify docker-all docker-compose-up docker-compose-down docker-check docker-generate
 
 # 默认目标
 .DEFAULT_GOAL := help
@@ -14,6 +14,9 @@ NC := \033[0m # No Color
 
 # Echo 命令（支持颜色转义）
 ECHO := echo -e
+
+# 加载 .env 文件（如果存在）
+-include .env
 
 # Python 相关命令（优先级：venv > 指定conda环境 > 激活的conda环境 > 系统python）
 ifeq ($(shell test -f venv/bin/python && echo venv),venv)
@@ -348,6 +351,108 @@ analyze-skip-ai:
 	@echo -e "$(GREEN)🔍 运行 Serena 分析（跳过 AI 增强）...$(NC)"
 	@$(PYTHON) tools/analyze_with_ai.py --skip-ai
 
+## docker-check: 检查项目 Docker 配置
+docker-check:
+	@echo -e "$(GREEN)🐳 检查 Docker 配置...$(NC)"
+	@if [ -z "$(PROJECT_PATH)" ]; then \
+		echo -e "$(YELLOW)⚠️  未找到目标项目路径$(NC)"; \
+		echo -e "$(YELLOW)  请在 .env 文件中设置 PROJECT_PATH 或通过命令行指定:$(NC)"; \
+		echo -e "$(YELLOW)  • make docker-check PROJECT_PATH=/path/to/project$(NC)"; \
+		exit 1; \
+	fi
+	@$(PYTHON) tools/docker_generator.py $(PROJECT_PATH)
+
+## docker-generate: 生成 Docker 配置（覆盖已存在的）
+docker-generate:
+	@echo -e "$(YELLOW)⚠️  生成 Docker 配置（将覆盖已有文件）...$(NC)"
+	@if [ -z "$(PROJECT_PATH)" ]; then \
+		echo -e "$(YELLOW)⚠️  未找到目标项目路径$(NC)"; \
+		echo -e "$(YELLOW)  请在 .env 文件中设置 PROJECT_PATH 或通过命令行指定:$(NC)"; \
+		echo -e "$(YELLOW)  • make docker-generate PROJECT_PATH=/path/to/project$(NC)"; \
+		exit 1; \
+	fi
+	@$(PYTHON) tools/docker_generator.py $(PROJECT_PATH) --force
+
+## docker-build: 构建 Docker 镜像
+docker-build:
+	@echo -e "$(GREEN)📦 构建 Docker 镜像...$(NC)"
+	@if [ -z "$(PROJECT_PATH)" ]; then \
+		echo -e "$(YELLOW)⚠️  未找到目标项目路径$(NC)"; \
+		echo -e "$(YELLOW)  请在 .env 文件中设置 PROJECT_PATH 或通过命令行指定:$(NC)"; \
+		echo -e "$(YELLOW)  • make docker-build PROJECT_PATH=/path/to/project$(NC)"; \
+		exit 1; \
+	fi
+	@cd $(PROJECT_PATH) && ./docker-build.sh
+
+## docker-run: 运行 Docker 容器
+docker-run:
+	@echo -e "$(GREEN)🚀 运行 Docker 容器...$(NC)"
+	@if [ -z "$(PROJECT_PATH)" ]; then \
+		echo -e "$(YELLOW)⚠️  未找到目标项目路径$(NC)"; \
+		echo -e "$(YELLOW)  请在 .env 文件中设置 PROJECT_PATH 或通过命令行指定:$(NC)"; \
+		echo -e "$(YELLOW)  • make docker-run PROJECT_PATH=/path/to/project$(NC)"; \
+		exit 1; \
+	fi
+	@cd $(PROJECT_PATH) && ./docker-run.sh
+
+## docker-verify: 验证目标项目的 Docker 配置
+docker-verify:
+	@echo -e "$(GREEN)🔍 验证目标项目 Docker 配置...$(NC)"
+	@if [ -z "$(PROJECT_PATH)" ]; then \
+		echo -e "$(YELLOW)⚠️  未找到目标项目路径$(NC)"; \
+		echo -e "$(YELLOW)  请在 .env 文件中设置 PROJECT_PATH 或通过命令行指定:$(NC)"; \
+		echo -e "$(YELLOW)  • make docker-build PROJECT_PATH=/path/to/project$(NC)"; \
+		exit 1; \
+	fi
+	@echo -e "$(CYAN)目标项目路径: $(PROJECT_PATH)$(NC)"
+	@if [ ! -f "$(PROJECT_PATH)/docker-build.sh" ]; then \
+		echo -e "$(YELLOW)⚠  docker-build.sh 不存在$(NC)"; \
+		exit 1; \
+	fi
+	@if [ ! -f "$(PROJECT_PATH)/docker-run.sh" ]; then \
+		echo -e "$(YELLOW)⚠  docker-run.sh 不存在$(NC)"; \
+		exit 1; \
+	fi
+	@echo -e "$(GREEN)✓ Docker 配置验证通过$(NC)"
+	@echo -e "$(CYAN)可用命令:$(NC)"
+	@echo -e "  • make docker-build    # 构建镜像"
+	@echo -e "  • make docker-run      # 运行容器"
+	@echo -e "  • make docker-all      # 构建并运行"
+
+## docker-all: 构建并运行 Docker 容器（一键完成）
+docker-all: docker-verify docker-build docker-run
+	@echo -e "$(GREEN)🎉 Docker 构建和运行完成！$(NC)"
+
+## docker-compose-up: 使用 docker-compose 启动
+docker-compose-up:
+	@echo -e "$(GREEN)🐳 启动 docker-compose...$(NC)"
+	@if [ -z "$(PROJECT_PATH)" ]; then \
+		echo -e "$(YELLOW)⚠️  未找到目标项目路径$(NC)"; \
+		echo -e "$(YELLOW)  请在 .env 文件中设置 PROJECT_PATH 或通过命令行指定:$(NC)"; \
+		echo -e "$(YELLOW)  • make docker-compose-up PROJECT_PATH=/path/to/project$(NC)"; \
+		exit 1; \
+	fi
+	@if [ ! -f "$(PROJECT_PATH)/docker-compose.yml" ]; then \
+		echo -e "$(YELLOW)⚠  docker-compose.yml 不存在$(NC)"; \
+		exit 1; \
+	fi
+	@cd $(PROJECT_PATH) && docker-compose up -d
+
+## docker-compose-down: 停止 docker-compose
+docker-compose-down:
+	@echo -e "$(YELLOW)⏹️  停止 docker-compose...$(NC)"
+	@if [ -z "$(PROJECT_PATH)" ]; then \
+		echo -e "$(YELLOW)⚠️  未找到目标项目路径$(NC)"; \
+		echo -e "$(YELLOW)  请在 .env 文件中设置 PROJECT_PATH 或通过命令行指定:$(NC)"; \
+		echo -e "$(YELLOW)  • make docker-compose-down PROJECT_PATH=/path/to/project$(NC)"; \
+		exit 1; \
+	fi
+	@if [ ! -f "$(PROJECT_PATH)/docker-compose.yml" ]; then \
+		echo -e "$(YELLOW)⚠  docker-compose.yml 不存在$(NC)"; \
+		exit 1; \
+	fi
+	@cd $(PROJECT_PATH) && docker-compose down
+
 ## version: 显示版本信息
 version:
 	@echo -e "$(CYAN)Serena MCP Client$(NC)"
@@ -368,5 +473,92 @@ clean-reports:
 		echo -e "$(GREEN)✓ 已删除 reports/ 下的所有 .md 和 .json 文件$(NC)"; \
 	else \
 		echo -e "$(YELLOW)⚠ reports/ 目录不存在$(NC)"; \
+	fi
+
+## clean-target: 清理目标项目中生成的 Docker 相关文件（使用 git status 检查新增文件）
+##   参数: PROJECT_PATH 可从 .env 文件读取或通过命令行指定
+##   参数: SKIP_CONFIRM=true 跳过确认模式
+clean-target:
+	@if [ -z "$(PROJECT_PATH)" ]; then \
+		echo -e "$(YELLOW)⚠️  未找到目标项目路径$(NC)"; \
+		echo -e "$(YELLOW)  请在 .env 文件中设置 PROJECT_PATH 或通过命令行指定:$(NC)"; \
+		echo -e "$(YELLOW)  • make clean-target PROJECT_PATH=/path/to/project$(NC)"; \
+		exit 1; \
+	fi
+	@if [ "$(SKIP_CONFIRM)" = "true" ]; then \
+		echo -e "$(GREEN)跳过确认模式...$(NC)"; \
+		$(PYTHON) tools/clean_generated_files.py "$(PROJECT_PATH)" --yes; \
+	else \
+		$(PYTHON) tools/clean_generated_files.py "$(PROJECT_PATH)"; \
+	fi
+
+## analyze-full: 一键完整分析（Serena + AI + Docker）
+analyze-full:
+	@echo -e "$(GREEN)🚀 一键完整分析（Serena + AI + Docker）...$(NC)"
+	@$(PYTHON) tools/full_analyzer.py --yes
+
+## analyze-full-serena: 只运行 Serena 分析
+analyze-full-serena:
+	@echo -e "$(GREEN)🔍 只运行 Serena 分析...$(NC)"
+	@$(PYTHON) tools/full_analyzer.py --serena-only --yes
+
+## analyze-full-skip-ai: 跳过 AI 分析，只运行 Serena + Docker
+analyze-full-skip-ai:
+	@echo -e "$(GREEN)🐳 跳过 AI 分析，运行 Serena + Docker...$(NC)"
+	@$(PYTHON) tools/full_analyzer.py --skip-ai --yes
+
+## analyze-full-skip-docker: 跳过 Docker 生成，只运行 Serena + AI
+analyze-full-skip-docker:
+	@echo -e "$(GREEN)🤖 跳过 Docker 生成，运行 Serena + AI...$(NC)"
+	@$(PYTHON) tools/full_analyzer.py --skip-docker --yes
+
+## analyze-full-force: 强制覆盖已有 Docker 配置
+analyze-full-force:
+	@echo -e "$(YELLOW)⚠️  强制覆盖已有 Docker 配置...$(NC)"
+	@$(PYTHON) tools/full_analyzer.py --force-docker --yes
+
+## analyze-full-no-cache: 禁用缓存，强制调用 AI API
+analyze-full-no-cache:
+	@echo -e "$(YELLOW)⚠️  禁用缓存，强制调用 AI API...$(NC)"
+	@$(PYTHON) tools/full_analyzer.py --no-cache --yes
+
+## analyze-full-custom-ttl: 自定义缓存有效期（参数：TTL）
+analyze-full-custom-ttl:
+	@if [ -z "$(TTL)" ]; then \
+		echo -e "$(YELLOW)⚠️  请指定缓存有效期（秒）: make analyze-full-custom-ttl TTL=3600$(NC)"; \
+		exit 1; \
+	fi
+	@echo -e "$(GREEN)🚀 一键完整分析（缓存有效期: $(TTL) 秒）...$(NC)"
+	@$(PYTHON) tools/full_analyzer.py --cache-ttl $(TTL) --yes
+
+## cache-clear: 清除所有 AI 分析缓存
+cache-clear:
+	@echo -e "$(GREEN)🗑️  清除所有 AI 分析缓存...$(NC)"
+	@$(PYTHON) tools/ai_enhanced_analyzer.py --clear-cache
+
+## cache-clear-project: 清除指定项目的缓存（参数：PROJECT_PATH）
+cache-clear-project:
+	@if [ -z "$(PROJECT_PATH)" ]; then \
+		echo -e "$(YELLOW)⚠️  请指定项目路径: make cache-clear-project PROJECT_PATH=/path/to/project$(NC)"; \
+		exit 1; \
+	fi
+	@echo -e "$(GREEN)🗑️  清除项目缓存: $(PROJECT_PATH)$(NC)"
+	@$(PYTHON) tools/ai_enhanced_analyzer.py --clear-project-cache "$(PROJECT_PATH)"
+
+## cache-list: 列出所有缓存文件
+cache-list:
+	@echo -e "$(CYAN)AI 分析缓存文件:$(NC)"
+	@if [ -d .cache ]; then \
+		if [ -n "$$(ls -A .cache)" ]; then \
+			for file in .cache/*.json; do \
+				if [ -f "$$file" ]; then \
+					echo -e "  $$(basename $$file)"; \
+				fi; \
+			done; \
+		else \
+			echo -e "  $(YELLOW)无缓存文件$(NC)"; \
+		fi; \
+	else \
+		echo -e "  $(YELLOW)缓存目录不存在$(NC)"; \
 	fi
 
