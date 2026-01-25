@@ -301,6 +301,13 @@ class AIEnhancedAnalyzer:
         else:
             ai_docker_strategy = {"error": "AI 代码质量分析失败，无法分析 Docker 策略"}
 
+        # AI 框架升级建议分析
+        print("🔄 正在进行 AI 框架升级建议分析...")
+        if "error" not in ai_results:
+            ai_framework_upgrade = self.analyze_framework_upgrade(analysis_data)
+        else:
+            ai_framework_upgrade = {"error": "AI 代码质量分析失败，无法分析框架升级建议"}
+
         # AI Docker 策略建议
         ai_docker_recommendations = []
         if "error" not in ai_docker_strategy:
@@ -391,13 +398,20 @@ docker-compose up -d
         docker_strategy_md = ""
         if "error" not in ai_docker_strategy:
             docker_strategy_md = self._generate_docker_strategy_markdown(ai_docker_strategy)
-        
+
+        # 生成 AI 框架升级建议 Markdown
+        framework_upgrade_md = ""
+        if "error" not in ai_framework_upgrade:
+            framework_upgrade_md = self._generate_framework_upgrade_markdown(ai_framework_upgrade)
+
         # 在原始报告后添加 AI 分析和 Docker 配置
         enhanced_report = f"""{original_md}
 
 {docker_section}
 
 {docker_strategy_md}
+
+{framework_upgrade_md}
 
 {ai_markdown}
 
@@ -474,6 +488,329 @@ docker-compose up -d
                 "strategy": None,
                 "recommendations": []
             }
+
+    def analyze_framework_upgrade(self, analysis_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        AI 分析框架升级建议
+
+        Args:
+            analysis_data: Serena 分析数据
+
+        Returns:
+            框架升级建议
+        """
+        project_path = analysis_data.get("project_path", "")
+        languages = analysis_data.get("languages", {})
+
+        # 尝试从缓存获取
+        cache_key = self._generate_cache_key(project_path, "framework_upgrade")
+        cached_result = self._get_cache(cache_key)
+
+        if cached_result:
+            print("✅ 从缓存加载框架升级建议结果")
+            return cached_result
+
+        # 准备提示词
+        prompt = self._prepare_framework_upgrade_prompt(analysis_data)
+
+        # 缓存未命中，调用 AI
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": "你是一位经验丰富的技术架构师，精通主流编程框架的版本升级、迁移策略和最佳实践。请基于项目分析数据，给出专业、谨慎的框架升级建议。"},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.2,  # 降低随机性，确保技术准确性
+                max_tokens=2500
+            )
+
+            ai_framework_upgrade = response.choices[0].message.content
+            result = self._parse_framework_upgrade(ai_framework_upgrade, analysis_data)
+
+            # 保存到缓存
+            self._save_cache(cache_key, result)
+            return result
+
+        except Exception as e:
+            return {
+                "error": f"框架升级建议分析失败: {str(e)}",
+                "framework_versions": [],
+                "upgrade_paths": [],
+                "recommendations": []
+            }
+
+    def _prepare_framework_upgrade_prompt(self, analysis_data: Dict[str, Any]) -> str:
+        """准备框架升级建议分析的提示词"""
+
+        project_path = analysis_data.get("project_path", "")
+        languages = analysis_data.get("languages", {})
+        dir_stats = analysis_data.get("directory_structure", {})
+
+        # 检查关键依赖文件
+        project_root = Path(project_path)
+        dependencies_info = {}
+
+        # Python 项目
+        if (project_root / "pyproject.toml").exists():
+            try:
+                content = (project_root / "pyproject.toml").read_text()
+                import re
+                python_matches = re.findall(r'python\s*=\s*["\']([^"\']+)["\']', content)
+                python_version = python_matches[0] if python_matches else "未指定"
+                dependencies_info["python_version"] = python_version
+            except:
+                pass
+
+        # Node.js 项目
+        if (project_root / "package.json").exists():
+            try:
+                with open(project_root / "package.json") as f:
+                    package_data = json.load(f)
+                    dependencies_info["node_version"] = package_data.get("engines", {}).get("node", "未指定")
+
+                    # 提取主要依赖和版本
+                    key_deps = {}
+                    for dep in ["react", "vue", "next", "angular", "express", "nestjs", "typescript"]:
+                        if dep in package_data.get("dependencies", {}):
+                            key_deps[dep] = package_data["dependencies"][dep]
+
+                    dependencies_info["key_dependencies"] = key_deps
+            except:
+                pass
+
+        # Go 项目
+        if (project_root / "go.mod").exists():
+            try:
+                content = (project_root / "go.mod").read_text()
+                import re
+                go_version = re.search(r'go\s+([0-9.]+)', content)
+                dependencies_info["go_version"] = go_version.group(1) if go_version else "未指定"
+            except:
+                pass
+
+        prompt = f"""请基于以下项目分析数据，给出框架升级建议：
+
+## 📁 项目基本信息
+- **项目路径**: {project_path}
+- **主要语言**: {', '.join(languages.keys()) if languages else '未知'}
+- **总文件数**: {sum(languages.values())}
+
+## 📦 依赖版本信息
+
+### Python
+- **Python 版本**: {dependencies_info.get("python_version", "未检测到 Python 项目")}
+
+### Node.js
+- **Node 版本**: {dependencies_info.get("node_version", "未检测到 Node.js 项目")}
+- **主要依赖**:
+{chr(10).join([f'- {name}: {version}' for name, version in dependencies_info.get("key_dependencies", {}).items()]) if dependencies_info.get("key_dependencies") else "- 未检测到关键依赖"}
+
+### Go
+- **Go 版本**: {dependencies_info.get("go_version", "未检测到 Go 项目")}
+
+## 📂 目录结构（前5个）
+{chr(10).join([f'- {dir_path} ({file_count}个文件)' for dir_path, file_count in sorted(dir_stats.items(), key=lambda x: x[1], reverse=True)[:5]]) if dir_stats else "- 暂无目录信息"}
+
+## 🎯 分析要求
+
+请从以下维度给出谨慎、专业的框架升级建议：
+
+### 1. **当前框架版本分析**
+   - 识别当前使用的框架和版本
+   - 分析当前版本的维护状态（EOL、LTS 等）
+   - 评估当前版本是否存在已知的安全漏洞
+
+### 2. **推荐升级路径**
+   - 建议升级到哪个版本（考虑稳定性、兼容性）
+   - 是否需要分步升级（如 React 16 -> 17 -> 18）
+   - 每个升级步骤的注意事项
+
+### 3. **Breaking Changes 分析**
+   - 列出主要 breaking changes
+   - 评估对项目的影响范围
+   - 提供迁移方案和代码修改建议
+
+### 4. **升级风险评估**
+   - 升级的复杂度评估（低/中/高）
+   - 可能需要修改的模块数量
+   - 测试覆盖要求
+
+### 5. **升级收益**
+   - 性能提升预期
+   - 新功能带来的价值
+   - 安全性改善
+
+### 6. **升级建议**
+   - 是否建议立即升级
+   - 如果建议延迟升级，说明原因
+   - 具体的执行步骤和检查清单
+
+### 7. **注意事项**
+   - 依赖兼容性问题
+   - 构建工具需要更新
+   - 环境要求变化
+
+## ⚠️ 重要提醒
+
+- **谨慎性优先**: 只有在有明显收益（安全、性能、功能）时才建议升级
+- **向后兼容**: 优先选择向后兼容的升级路径
+- **测试要求**: 必须强调升级前后的测试要求
+- **回滚方案**: 提供升级失败时的回滚建议
+
+请提供具体、可操作、负责任的升级建议。如果当前版本已经是最新稳定版，请明确说明，不要强求升级。"""
+
+        return prompt
+
+    def _parse_framework_upgrade(self, upgrade_text: str, analysis_data: Dict[str, Any]) -> Dict[str, Any]:
+        """解析框架升级建议分析结果"""
+
+        import re
+
+        # 提取框架版本信息
+        frameworks = []
+        # 尝试匹配 "React 17 -> 18" 格式
+        version_matches = re.findall(r'([A-Za-z]+)\s+(\d+[.\d]*)\s*(?:->|to|升级到)\s*(\d+[.\d]*)', upgrade_text, re.IGNORECASE)
+        for match in version_matches:
+            frameworks.append({
+                "name": match[0],
+                "current_version": match[1],
+                "recommended_version": match[2]
+            })
+
+        # 提取升级路径
+        upgrade_paths = []
+        # 尝试匹配升级步骤
+        step_matches = re.finditer(r'(?:步骤|step)\s*\d+[:：]?\s*([^\n]+)', upgrade_text, re.IGNORECASE)
+        for match in step_matches:
+            upgrade_paths.append(match.group(1).strip())
+
+        # 提取风险评估等级
+        risk_level = None
+        if "低风险" in upgrade_text or "low risk" in upgrade_text.lower():
+            risk_level = "低"
+        elif "高风险" in upgrade_text or "high risk" in upgrade_text.lower():
+            risk_level = "高"
+        elif "中风险" in upgrade_text or "medium risk" in upgrade_text.lower():
+            risk_level = "中"
+
+        return {
+            "upgrade_analysis": upgrade_text,
+            "framework_versions": frameworks,
+            "upgrade_paths": upgrade_paths,
+            "risk_level": risk_level,
+            "recommendations": self._extract_framework_recommendations(upgrade_text)
+        }
+
+    def _extract_framework_recommendations(self, text: str) -> List[str]:
+        """提取框架升级相关建议"""
+
+        recommendations = []
+        lines = text.split('\n')
+        in_recs = False
+
+        for line in lines:
+            # 检测建议部分的开始
+            if any(keyword in line.lower() for keyword in ['建议', '推荐', '注意', '建议升级', '推荐路径']):
+                in_recs = True
+            elif in_recs and line.strip().startswith(('-', '•', '*', '1.', '2.', '3.', '4.', '5.')):
+                # 提取列表项
+                rec = line.strip().lstrip('-•*12345. ').strip()
+                if rec and len(rec) > 5:  # 过滤过短的行
+                    recommendations.append(rec)
+            elif in_recs and line.strip() == '' and recommendations:
+                # 空行表示部分结束
+                break
+
+        return recommendations
+
+    def _generate_framework_upgrade_markdown(self, framework_upgrade: Dict[str, Any]) -> str:
+        """生成 AI 框架升级建议的 Markdown 内容"""
+
+        if "error" in framework_upgrade:
+            return f"""## 🔄 AI 框架升级建议
+
+⚠️ {framework_upgrade['error']}
+
+### 当前状态
+
+无法提供框架升级建议，请检查代码质量分析结果。
+"""
+
+        md = f"""## 🔄 AI 框架升级建议
+
+基于 AI 深度分析，为该项目提供以下框架升级建议：
+
+### 📋 升级概览
+
+"""
+
+        # 添加框架版本信息
+        frameworks = framework_upgrade.get("framework_versions", [])
+        if frameworks:
+            md += "**框架版本**:\n\n"
+            for fw in frameworks:
+                md += f"- {fw['name']}: {fw['current_version']} → {fw['recommended_version']}\n"
+            md += "\n"
+        else:
+            md += "未检测到需要升级的框架，当前版本可能已经是最新稳定版。\n\n"
+
+        # 添加风险评估
+        risk_level = framework_upgrade.get("risk_level")
+        if risk_level:
+            risk_emoji = {"低": "✅", "中": "⚠️", "高": "⚠️"}.get(risk_level, "📊")
+            md += f"**升级风险等级**: {risk_emoji} {risk_level}风险\n\n"
+
+        md += "### 💡 升级建议\n\n"
+
+        recommendations = framework_upgrade.get("recommendations", [])
+        if recommendations:
+            for i, rec in enumerate(recommendations[:6], 1):
+                md += f"{i}. {rec}\n"
+            if len(recommendations) > 6:
+                md += f"\n*还有 {len(recommendations) - 6} 条建议*\n"
+        else:
+            md += "AI 未提供具体升级建议。\n"
+
+        # 添加升级路径
+        upgrade_paths = framework_upgrade.get("upgrade_paths", [])
+        if upgrade_paths:
+            md += "\n### 🛤️ 推荐升级路径\n\n"
+            for i, step in enumerate(upgrade_paths, 1):
+                md += f"{i}. {step}\n"
+
+        md += f"""
+### 🔧 技术细节
+
+<details>
+<summary>查看详细升级分析</summary>
+
+```
+{framework_upgrade.get('upgrade_analysis', '暂无详细分析')}
+```
+</details>
+
+### ⚠️ 升级前检查清单
+
+- [ ] 备份当前代码和数据库
+- [ ] 阅读官方升级文档和 breaking changes
+- [ ] 在测试环境进行升级验证
+- [ ] 运行完整的单元测试和集成测试
+- [ ] 准备回滚方案
+- [ ] 通知团队成员升级时间窗口
+
+### 📚 参考资源
+
+- 官方文档升级指南
+- 社区升级经验分享
+- 迁移工具和自动化脚本
+
+---
+
+"""
+
+        return md
+
     
     def _prepare_docker_strategy_prompt(self, analysis_data: Dict[str, Any], ai_analysis: str) -> str:
         """准备 Docker 策略分析的提示词"""

@@ -16,28 +16,35 @@
 
 ```
 .
-├── tools/                          # 工具脚本目录
-│   ├── analyze_project_multilang.py  # Serena 多语言分析工具
-│   ├── ai_enhanced_analyzer.py       # AI 增强分析器（DeepSeek 集成）
-│   ├── docker_generator.py          # Docker 配置自动生成器
-│   ├── analyze_with_ai.py           # 一键 AI 分析脚本
-│   ├── full_analyzer.py             # 一键完整分析工具（Serena + AI + Docker）
-│   └── serena_stdio_client.py       # Stdio 客户端
-├── reports/                        # 生成的分析报告目录
-├── docs/                          # 文档目录
 ├── src/                           # 源代码
-├── tests/                         # 测试用例
+│   ├── serena_client.py           # Serena MCP 客户端
+│   ├── serena_stdio_client.py     # Stdio 通信客户端
+│   ├── __init__.py
+│   └── serena_mcp_client.egg-info/  # 包元数据
+├── tools/                         # 工具脚本
+│   ├── full_analyzer.py           # 一键分析工具
+│   ├── analyze_project_multilang.py  # 多语言分析
+│   ├── docker_generator.py        # Docker 生成器
+│   ├── ai_enhanced_analyzer.py    # AI 增强分析器（含框架升级建议）
+│   ├── analyze_with_ai.py         # AI 分析封装
+│   └── clean_generated_files.py   # 清理工具
 ├── examples/                      # 示例代码
-├── Makefile                       # 项目管理命令（30+ 命令）
-├── pyproject.toml               # 项目配置（包含依赖管理）
-├── uv.lock                       # uv 锁定的依赖版本
-├── setup_uv.sh                   # uv 初始化脚本
-├── .env.example                 # 环境变量示例
-├── QUICK_START.md               # 一键分析工具快速指南
-├── UV_GUIDE.md                  # uv 使用指南
-├── TOKEN_USAGE_ANALYSIS.md      # Token 使用分析报告
-├── IDE_VS_SCRIPT_COMPARISON.md  # 方案对比文档
-└── CRITICAL_ANALYSIS.md         # 问题与商业化分析
+│   └── serena_example.py          # Serena 使用示例
+├── reports/                       # 分析报告输出目录
+│   ├── ai-chat_analysis_20260125.json
+│   ├── ai-chat_analysis_20260125.md
+│   └── ai-chat_analysis_20260125-ai.md
+├── tests/                         # 测试文件
+│   └── test_stdio_client.py
+├── docs/                          # 详细文档
+│   ├── FRAMEWORK_UPGRADE.md       # 框架升级建议功能说明
+│   └── UV_GUIDE.md                # uv 使用指南
+├── pyproject.toml                 # 项目配置
+├── uv.lock                        # 锁定依赖版本
+├── setup_uv.sh                    # uv 安装脚本
+├── Makefile                       # 便捷命令
+├── README.md                      # 本文件
+└── QUICK_START.md                 # 快速开始指南
 ```
 
 ## 🚀 快速开始
@@ -131,19 +138,19 @@ make help
 
 || 命令 | 说明 | AI 成本 |
 ||------|------|---------|
-|| `make analyze-full` | 一键完整分析（Serena + AI + Docker） | ~¥0.012 |
+|| `make analyze-full` | 一键完整分析（Serena + AI + Docker） | ~¥0.017 |
 || `make analyze-full-serena` | 只运行 Serena 分析 | ¥0 |
 || `make analyze-full-skip-ai` | 跳过 AI，运行 Serena + Docker | ¥0 |
-|| `make analyze-full-skip-docker` | 跳过 Docker，运行 Serena + AI | ~¥0.012 |
-|| `make analyze-full-force` | 强制覆盖已有 Docker 配置 | ~¥0.012 |
+|| `make analyze-full-skip-docker` | 跳过 Docker，运行 Serena + AI | ~¥0.017 |
+|| `make analyze-full-force` | 强制覆盖已有 Docker 配置 | ~¥0.017 |
 
 ### 🔍 核心分析命令
 
 || 命令 | 说明 | AI 成本 |
 ||------|------|---------|
-|| `make analyze-ai` | 一键 AI 增强分析（完整流程） | ~¥0.012 |
+|| `make analyze-ai` | 一键 AI 增强分析（完整流程） | ~¥0.017 |
 || `make analyze-skip-ai` | 仅 Serena 分析（跳过 AI） | ¥0 |
-|| `make analyze-ai-only` | 对已有报告进行 AI 增强 | ~¥0.012 |
+|| `make analyze-ai-only` | 对已有报告进行 AI 增强 | ~¥0.017 |
 || `make analyze` | 生成 Markdown 报告（多语言）| ¥0 |
 || `make analyze-json` | 生成 JSON 报告（多语言）| ¥0 |
 
@@ -216,7 +223,8 @@ make help
   - 潜在问题识别
   - 改进建议（8-15 条）
   - 可扩展性和可维护性分析
-  - **Docker 策略建议**（新增）
+  - **Docker 策略建议**
+  - **框架升级建议**（新增）
 - **输出**：AI 增强的 Markdown 报告（包含专业建议）
 
 ### 3. AI 驱动的 Docker 自动生成
@@ -254,12 +262,15 @@ reports/
 
 ### Token 消耗
 
+### Token 消耗
+
 || 分析类型 | Tokens | 成本 |
 ||---------|--------|------|
 || Serena 结构分析 | 0 | ¥0 |
 || AI 代码质量分析 | ~2,500 | ~¥0.005 |
 || AI Docker 策略分析 | ~5,100 | ~¥0.007 |
-|| **完整分析** | **~7,600** | **¥0.012** |
+|| AI 框架升级建议 | ~2,500 | ~¥0.005 |
+|| **完整分析** | **~10,100** | **~0.017** |
 
 ### 实际案例（ai-chat 项目）
 

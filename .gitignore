@@ -48,3 +48,4 @@ archive/
 reports/
 .serena
 .cache
+.pytest_cache
