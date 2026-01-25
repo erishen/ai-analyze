@@ -1,7 +1,7 @@
 # Makefile for Serena MCP Client
 # 提供便捷的项目管理命令
 
-.PHONY: help install init test clean clean-reports clean-target lint format format-check conda-create conda-activate conda-install conda-update conda-remove conda-export conda-list docker-build docker-run docker-verify docker-all docker-compose-up docker-compose-down docker-check docker-generate
+.PHONY: help install init test clean clean-reports clean-target lint format format-check conda-create conda-activate conda-update conda-remove conda-export conda-list uv-install uv-sync uv-shell docker-build docker-run docker-verify docker-all docker-compose-up docker-compose-down docker-generate
 
 # 默认目标
 .DEFAULT_GOAL := help
@@ -98,6 +98,38 @@ install:
 	@PIP_BREAK_SYSTEM_PACKAGES=1 $(PYTHON) -m pip install -e .
 	@echo -e "$(GREEN)✓ 依赖安装完成$(NC)"
 
+## uv-install: 使用 uv 安装依赖（推荐）
+uv-install:
+	@echo -e "$(GREEN)🚀 使用 uv 安装依赖...$(NC)"
+	@if ! command -v uv &> /dev/null; then \
+		echo -e "$(YELLOW)📦 uv 未安装，正在安装...$(NC)"; \
+		curl -LsSf https://astral.sh/uv/install.sh | sh; \
+		export PATH="$$HOME/.cargo/bin:$$PATH"; \
+	fi
+	@echo -e "$(GREEN)✅ uv 版本: $$(uv --version)$(NC)"
+	@if [ -n "$$CONDA_DEFAULT_ENV" ]; then \
+		echo -e "$(CYAN)🐍 检测到 conda 环境: $$CONDA_DEFAULT_ENV$(NC)"; \
+		echo -e "$(CYAN)📦 使用 conda 的 Python 创建虚拟环境...$(NC)"; \
+		UV_PYTHON=$$(which python) uv sync; \
+		UV_PYTHON=$$(which python) uv sync --extra dev; \
+	else \
+		echo -e "$(CYAN)🐍 使用系统 Python 创建虚拟环境...$(NC)"; \
+		uv sync; \
+		uv sync --extra dev; \
+	fi
+	@echo -e "$(GREEN)✓ 依赖安装完成（使用 uv）$(NC)"
+
+## uv-sync: 同步 uv 依赖
+uv-sync:
+	@echo -e "$(GREEN)🔄 同步 uv 依赖...$(NC)"
+	@uv sync
+	@echo -e "$(GREEN)✓ 依赖同步完成$(NC)"
+
+## uv-shell: 进入 uv 虚拟环境
+uv-shell:
+	@echo -e "$(GREEN)🐚 进入 uv 虚拟环境...$(NC)"
+	@uv shell
+
 ## install-dev: 安装开发依赖
 install-dev:
 	@echo -e "$(GREEN)检查 Python 环境...$(NC)"
@@ -130,62 +162,40 @@ install-dev:
 	@PIP_BREAK_SYSTEM_PACKAGES=1 $(PYTHON) -m pip install -e .[dev]
 	@echo -e "$(GREEN)✓ 开发依赖安装完成$(NC)"
 
-## conda-create: 创建 conda 环境
+## conda-create: 创建 conda 环境（已弃用，建议使用 uv）
 conda-create:
-	@echo -e "$(GREEN)创建 conda 环境...$(NC)"
-	@conda env create -f environment.yml
-	@echo -e "$(GREEN)✓ conda 环境创建完成$(NC)"
-	@echo -e "$(CYAN)激活环境: conda activate serena-client$(NC)"
+	@echo -e "$(YELLOW)⚠ conda 命令已弃用，建议使用 uv$(NC)"
+	@echo -e "$(CYAN)请使用: make uv-install$(NC)"
 
-## conda-activate: 显示如何激活 conda 环境
+## conda-activate: 显示如何激活 conda 环境（已弃用，建议使用 uv）
 conda-activate:
-	@echo -e "$(CYAN)激活 conda 环境:$(NC)"
-	@echo -e "  conda activate $(CONDA_ENV)"
-	@if [ -z "$$CONDA_DEFAULT_ENV" ]; then \
-		echo -e "$(YELLOW)⚠ 当前不在 conda 环境中$(NC)"; \
-	else \
-		echo -e "$(GREEN)✓ 当前环境: $(CONDA_DEFAULT_ENV)$(NC)"; \
-	fi
+	@echo -e "$(YELLOW)⚠ conda 命令已弃用，建议使用 uv$(NC)"
+	@echo -e "$(CYAN)请使用: make uv-shell$(NC)"
 
-## conda-install: 在 conda 环境中安装依赖
+## conda-install: 在 conda 环境中安装依赖（已弃用，建议使用 uv）
 conda-install:
-	@echo -e "$(GREEN)在 conda 环境中安装依赖...$(NC)"
-	@conda install -n $(CONDA_ENV) --file requirements.txt -y || \
-	$(PIP) install -r requirements.txt
-	@echo -e "$(GREEN)✓ 依赖安装完成$(NC)"
-	@echo -e "$(GREEN)在 conda 环境中安装依赖...$(NC)"
-	@conda install -n $(CONDA_ENV) --file requirements.txt -y || \
-	$(PIP) install -r requirements.txt
-	@echo -e "$(GREEN)✓ 依赖安装完成$(NC)"
+	@echo -e "$(YELLOW)⚠ conda 命令已弃用，建议使用 uv$(NC)"
+	@echo -e "$(CYAN)请使用: make uv-sync$(NC)"
 
-## conda-update: 更新 conda 环境
+## conda-update: 更新 conda 环境（已弃用，建议使用 uv）
 conda-update:
-	@echo -e "$(GREEN)更新 conda 环境...$(NC)"
-	@conda env update -f environment.yml --prune
-	@echo -e "$(GREEN)✓ conda 环境更新完成$(NC)"
+	@echo -e "$(YELLOW)⚠ conda 命令已弃用，建议使用 uv$(NC)"
+	@echo -e "$(CYAN)请使用: make uv-sync$(NC)"
 
-## conda-remove: 删除 conda 环境
+## conda-remove: 删除 conda 环境（已弃用，建议使用 uv）
 conda-remove:
-	@echo -e "$(YELLOW)删除 conda 环境: $(CONDA_ENV)$(NC)"
-	@read -p "确认删除? (y/N) " -n 1 -r; \
-	echo -e; \
-	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
-		conda env remove -n $(CONDA_ENV) -y; \
-		echo -e "$(GREEN)✓ conda 环境已删除$(NC)"; \
-	else \
-		echo -e "$(YELLOW)取消删除$(NC)"; \
-	fi
+	@echo -e "$(YELLOW)⚠ conda 命令已弃用，建议使用 uv$(NC)"
+	@echo -e "$(CYAN)如需清理虚拟环境，删除 .venv 目录即可$(NC)"
 
-## conda-export: 导出当前环境配置
+## conda-export: 导出当前环境配置（已弃用，建议使用 uv）
 conda-export:
-	@echo -e "$(GREEN)导出当前环境配置...$(NC)"
-	@conda env export > environment.lock.yml
-	@echo -e "$(GREEN)✓ 环境配置已导出到 environment.lock.yml$(NC)"
+	@echo -e "$(YELLOW)⚠ conda 命令已弃用，建议使用 uv$(NC)"
+	@echo -e "$(CYAN)uv.lock 文件即为环境配置$(NC)"
 
-## conda-list: 列出 conda 环境
+## conda-list: 列出 conda 环境（已弃用，建议使用 uv）
 conda-list:
-	@echo -e "$(CYAN)可用的 conda 环境:$(NC)"
-	@conda env list
+	@echo -e "$(YELLOW)⚠ conda 命令已弃用，建议使用 uv$(NC)"
+	@echo -e "$(CYAN)uv 使用 .venv 目录管理环境$(NC)"
 
 ## test: 运行所有测试
 test:
@@ -288,25 +298,6 @@ clean:
 	@rm -f .coverage
 	@echo -e "$(GREEN)✓ 清理完成$(NC)"
 
-## check-env: 检查环境配置
-check-env:
-	@echo -e "$(GREEN)检查环境配置...$(NC)"
-	@if [ ! -f .env ]; then \
-		echo -e "$(YELLOW)⚠ .env 文件不存在，运行 'make init' 创建$(NC)"; \
-		exit 1; \
-	fi
-	@echo -e "$(GREEN)✓ .env 文件存在$(NC)"
-	@if grep -q "SERENA_DIR=.*/path/to" .env; then \
-		echo -e "$(YELLOW)⚠ 请在 .env 中配置 SERENA_DIR$(NC)"; \
-	else \
-		echo -e "$(GREEN)✓ SERENA_DIR 已配置$(NC)"; \
-	fi
-
-## docs: 打开文档目录
-docs:
-	@echo -e "$(GREEN)文档位置: $(DOCS_DIR)/$(NC)"
-	@ls -la $(DOCS_DIR)/
-
 ## debug: 显示调试信息
 debug:
 	@echo -e "$(CYAN)调试信息:$(NC)"
@@ -332,10 +323,6 @@ analyze-json:
 analyze-ai:
 	@echo -e "$(GREEN)🤖 开始 AI 增强代码分析（Serena + DeepSeek）...$(NC)"
 	@$(PYTHON) tools/analyze_with_ai.py
-
-## analyze-ai-only: 对已有的 Serena 报告进行 AI 增强分析
-analyze-ai-only:
-	@echo -e "$(YELLOW)⚠️  请指定报告路径: make analyze-ai-only REPORT=path/to/report.json$(NC)"
 
 ## analyze-ai-only: 对已有的 Serena 报告进行 AI 增强分析（带参数）
 analyze-ai-only-report:

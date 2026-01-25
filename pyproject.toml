@@ -6,8 +6,8 @@ build-backend = "setuptools.build_meta"
 name = "serena-mcp-client"
 version = "0.1.0"
 description = "A comprehensive Python toolset for calling Serena MCP (Model Context Protocol) server for code analysis"
-readme = "docs/README_SERENA_CLIENT.md"
-requires-python = ">=3.7"
+readme = "README.md"
+requires-python = ">=3.8.1"
 authors = [
     {name = "Erishen", email = "erishen@example.com"}
 ]
@@ -18,15 +18,14 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
 
 dependencies = [
-    "httpx>=0.24.0",
     "python-dotenv>=1.0.0",
     "openai>=1.0.0",
 ]
@@ -53,14 +52,14 @@ where = ["src"]
 
 [tool.black]
 line-length = 120
-target-version = ['py37', 'py38', 'py39', 'py310', 'py311']
+target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
 
 [tool.flake8]
 max-line-length = 120
 extend-ignore = ["E203", "W503"]
 
 [tool.mypy]
-python_version = "3.7"
+python_version = "3.8"
 warn_return_any = true
 warn_unused_configs = true
 ignore_missing_imports = true

@@ -29,11 +29,12 @@
 ├── tests/                         # 测试用例
 ├── examples/                      # 示例代码
 ├── Makefile                       # 项目管理命令（30+ 命令）
-├── requirements.txt               # Python 依赖
-├── environment.yml               # Conda 环境配置
-├── pyproject.toml               # 项目配置
+├── pyproject.toml               # 项目配置（包含依赖管理）
+├── uv.lock                       # uv 锁定的依赖版本
+├── setup_uv.sh                   # uv 初始化脚本
 ├── .env.example                 # 环境变量示例
 ├── QUICK_START.md               # 一键分析工具快速指南
+├── UV_GUIDE.md                  # uv 使用指南
 ├── TOKEN_USAGE_ANALYSIS.md      # Token 使用分析报告
 ├── IDE_VS_SCRIPT_COMPARISON.md  # 方案对比文档
 └── CRITICAL_ANALYSIS.md         # 问题与商业化分析
@@ -43,14 +44,34 @@
 
 ### 1. 安装依赖
 
+#### 方式 1: 使用 uv（推荐，极快）
+
 ```bash
-# 使用 Makefile 一键安装所有依赖
+# 一键安装（推荐）
+make uv-install
+
+# 或手动使用 uv
+uv sync                    # 同步依赖
+uv sync --extra dev         # 包含开发依赖
+uv shell                   # 进入虚拟环境
+```
+
+#### 方式 2: 使用传统方式（pip）
+
+```bash
+# 使用 Makefile
 make install
 
 # 或手动安装
 pip install -e .
-pip install -r requirements.txt
 ```
+
+**uv vs pip 性能对比**:
+| 操作 | pip | uv | 提升 |
+|------|-----|-----|------|
+| 安装依赖 | ~30s | ~2s | 15x |
+| 依赖解析 | ~10s | ~0.2s | 50x |
+| 虚拟环境创建 | ~5s | ~0.1s | 50x |
 
 ### 2. 配置环境
 
