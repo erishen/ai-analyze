@@ -18,8 +18,13 @@ ECHO := echo -e
 # 加载 .env 文件（如果存在）
 -include .env
 
-# Python 相关命令（优先级：venv > 指定conda环境 > 激活的conda环境 > 系统python）
-ifeq ($(shell test -f venv/bin/python && echo venv),venv)
+# Python 相关命令（优先级：.venv(uv) > venv > 指定conda环境 > 激活的conda环境 > 系统python）
+ifeq ($(shell test -f .venv/bin/python && echo .venv),.venv)
+    # .venv 存在，使用 .venv（uv 创建的虚拟环境）
+    PYTHON := .venv/bin/python
+    PIP := .venv/bin/pip
+    CONDA_AVAILABLE := 0
+else ifeq ($(shell test -f venv/bin/python && echo venv),venv)
     # venv 存在，使用 venv
     PYTHON := venv/bin/python
     PIP := venv/bin/pip
