@@ -31,10 +31,20 @@ jobs:
         uv venv
         source .venv/bin/activate
         uv pip install -e .[dev]
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'test-key-for-ci' }}
+        OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL || 'https://api.deepseek.com' }}
+        OPENAI_MODEL: ${{ secrets.OPENAI_MODEL || 'deepseek-chat' }}
+        PROJECT_PATH: ${{ secrets.PROJECT_PATH || './' }}
     
     - name: Check environment
       run: |
         make check-env
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'test-key-for-ci' }}
+        OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL || 'https://api.deepseek.com' }}
+        OPENAI_MODEL: ${{ secrets.OPENAI_MODEL || 'deepseek-chat' }}
+        PROJECT_PATH: ${{ secrets.PROJECT_PATH || './' }}
     
     - name: Run tests
       run: |
