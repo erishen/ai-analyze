@@ -124,9 +124,7 @@ class StdioMCPClient:
         Returns:
             工具执行结果
         """
-        result = await self._send_request(
-            "tools/call", {"name": name, "arguments": arguments}
-        )
+        result = await self._send_request("tools/call", {"name": name, "arguments": arguments})
 
         # 解析内容
         content = result.get("content", [])
@@ -281,13 +279,9 @@ class SerenaStdioClient:
 
         return await self.mcp_client.call_tool("search_for_pattern", args)
 
-    async def find_file(
-        self, file_mask: str, relative_path: str = "."
-    ) -> dict[str, Any]:
+    async def find_file(self, file_mask: str, relative_path: str = ".") -> dict[str, Any]:
         """查找文件"""
-        return await self.mcp_client.call_tool(
-            "find_file", {"file_mask": file_mask, "relative_path": relative_path}
-        )
+        return await self.mcp_client.call_tool("find_file", {"file_mask": file_mask, "relative_path": relative_path})
 
     async def list_dir(
         self,
@@ -315,9 +309,7 @@ async def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="Serena MCP Stdio 客户端")
-    parser.add_argument(
-        "--project", type=str, help="项目路径", default=str(Path.cwd())
-    )
+    parser.add_argument("--project", type=str, help="项目路径", default=str(Path.cwd()))
 
     subparsers = parser.add_subparsers(dest="command", help="可用命令")
 
@@ -414,9 +406,7 @@ async def main():
                 print(json.dumps(result, indent=2, ensure_ascii=False))
 
             elif args.command == "list-dir":
-                result = await client.list_dir(
-                    args.path, recursive=args.recursive, skip_ignored_files=not args.all
-                )
+                result = await client.list_dir(args.path, recursive=args.recursive, skip_ignored_files=not args.all)
                 print(json.dumps(result, indent=2, ensure_ascii=False))
 
     except RuntimeError as e:

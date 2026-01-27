@@ -10,7 +10,7 @@ import sys
 import os
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from serena_stdio_client import SerenaStdioClient  # noqa: E402
 
@@ -210,7 +210,7 @@ async def main():
 
     if not SERENA_AVAILABLE:
         print("\n警告: Serena 服务器未安装，跳过集成测试")
-        print(f"请安装 Serena: git clone git@github.com:oraios/serena.git")
+        print("请安装 Serena: git clone git@github.com:oraios/serena.git")
         print("或设置 SERENA_DIR 环境变量")
         return
 

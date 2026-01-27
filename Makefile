@@ -1,7 +1,7 @@
 # Makefile for Serena MCP Client
 # 提供便捷的项目管理命令
 
-.PHONY: help install init check-env test clean clean-reports clean-target lint format format-check conda-create conda-activate conda-update conda-remove conda-export conda-list uv-install uv-sync uv-shell docker-build docker-run docker-verify docker-all docker-compose-up docker-compose-down docker-generate
+.PHONY: help install init check-env test clean clean-reports clean-target lint format format-check ci-verify conda-create conda-activate conda-update conda-remove conda-export conda-list uv-install uv-sync uv-shell docker-build docker-run docker-verify docker-all docker-compose-up docker-compose-down docker-generate
 
 # 默认目标
 .DEFAULT_GOAL := help
@@ -307,6 +307,16 @@ type-check:
 	@echo -e "$(GREEN)运行类型检查...$(NC)"
 	@mypy $(SRC_DIR)/ --ignore-missing-imports
 	@echo -e "$(GREEN)✓ 类型检查完成$(NC)"
+
+## ci-verify: 本地模拟 CI 环境，运行所有检查
+ci-verify:
+	@echo -e "$(GREEN)本地 CI 验证...$(NC)"
+	@if [ -f $(SCRIPTS_DIR)/ci-verify.sh ]; then \
+		chmod +x $(SCRIPTS_DIR)/ci-verify.sh; \
+		$(SCRIPTS_DIR)/ci-verify.sh; \
+	else \
+		echo -e "$(YELLOW)⚠ 脚本不存在: $(SCRIPTS_DIR)/ci-verify.sh$(NC)"; \
+	fi
 
 ## clean: 清理缓存和临时文件
 clean:

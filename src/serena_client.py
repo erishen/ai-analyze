@@ -200,9 +200,7 @@ class SerenaClient:
         """
         tool = self.get_tool(FindFileTool)
 
-        result = self.agent.execute_task(
-            lambda: tool.apply(file_mask=file_mask, relative_path=relative_path)
-        )
+        result = self.agent.execute_task(lambda: tool.apply(file_mask=file_mask, relative_path=relative_path))
         return json.loads(result)
 
     def rename_symbol(
