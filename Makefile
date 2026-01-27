@@ -69,9 +69,11 @@ init:
 ## check-env: 检查环境变量配置
 check-env:
 	@echo -e "$(GREEN)检查环境变量配置...$(NC)"
-	@if [ ! -f .env ]; then \
-		echo -e "$(YELLOW)⚠ .env 文件不存在，请先创建: make init$(NC)"; \
-		exit 1; \
+	@if [ -z "$$CI" ]; then \
+		if [ ! -f .env ]; then \
+			echo -e "$(YELLOW)⚠ .env 文件不存在，请先创建: make init$(NC)"; \
+			exit 1; \
+		fi; \
 	fi
 	@if [ -z "$$OPENAI_API_KEY" ]; then \
 		echo -e "$(YELLOW)⚠ OPENAI_API_KEY 未设置$(NC)"; \
