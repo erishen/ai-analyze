@@ -1,7 +1,7 @@
 # Makefile for Serena MCP Client
 # 提供便捷的项目管理命令
 
-.PHONY: help install init test clean clean-reports clean-target lint format format-check conda-create conda-activate conda-update conda-remove conda-export conda-list uv-install uv-sync uv-shell docker-build docker-run docker-verify docker-all docker-compose-up docker-compose-down docker-generate
+.PHONY: help install init check-env test clean clean-reports clean-target lint format format-check conda-create conda-activate conda-update conda-remove conda-export conda-list uv-install uv-sync uv-shell docker-build docker-run docker-verify docker-all docker-compose-up docker-compose-down docker-generate
 
 # 默认目标
 .DEFAULT_GOAL := help
@@ -65,6 +65,23 @@ init:
 	else \
 		echo -e "$(YELLOW)⚠ .env 文件已存在$(NC)"; \
 	fi
+
+## check-env: 检查环境变量配置
+check-env:
+	@echo -e "$(GREEN)检查环境变量配置...$(NC)"
+	@if [ ! -f .env ]; then \
+		echo -e "$(YELLOW)⚠ .env 文件不存在，请先创建: make init$(NC)"; \
+		exit 1; \
+	fi
+	@if [ -z "$$OPENAI_API_KEY" ]; then \
+		echo -e "$(YELLOW)⚠ OPENAI_API_KEY 未设置$(NC)"; \
+		exit 1; \
+	fi
+	@if [ -z "$$PROJECT_PATH" ]; then \
+		echo -e "$(YELLOW)⚠ PROJECT_PATH 未设置$(NC)"; \
+		exit 1; \
+	fi
+	@echo -e "$(GREEN)✓ 环境变量配置正确$(NC)"
 
 ## install: 安装依赖（可编辑模式）
 install:

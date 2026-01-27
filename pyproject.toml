@@ -3,13 +3,13 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "serena-mcp-client"
+name = "ai-project-analyzer"
 version = "0.1.0"
-description = "A comprehensive Python toolset for calling Serena MCP (Model Context Protocol) server for code analysis"
+description = "AI-powered code analysis tool with Serena integration, Docker generation, and DeepSeek AI enhancement"
 readme = "README.md"
 requires-python = ">=3.8.1"
 authors = [
-    {name = "Erishen", email = "erishen@example.com"}
+    {name = "Erishen", email = "erishen@qq.com"}
 ]
 license = {text = "MIT"}
 classifiers = [
@@ -40,9 +40,9 @@ dev = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/erishen/serena-mcp-client"
-"Repository" = "https://github.com/erishen/serena-mcp-client.git"
-"Issue Tracker" = "https://github.com/erishen/serena-mcp-client/issues"
+"Homepage" = "https://github.com/erishen/ai-analyze"
+"Repository" = "https://github.com/erishen/ai-analyze.git"
+"Issue Tracker" = "https://github.com/erishen/ai-analyze/issues"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

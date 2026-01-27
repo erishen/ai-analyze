@@ -49,6 +49,40 @@
 
 ## 🚀 快速开始
 
+### 前置要求
+
+⚠️ **必须先完成以下两步**：
+
+1. **下载 Serena MCP**
+   ```bash
+   # 克隆 Serena 仓库
+   git clone git@github.com:oraios/serena.git
+   cd serena
+
+   # 创建虚拟环境
+   python -m venv venv
+   source venv/bin/activate  # Windows: venv\Scripts\activate
+
+   # 安装依赖
+   pip install -e .
+
+   # 验证安装
+   python -m serena --version
+   ```
+
+2. **配置 DeepSeek API KEY**
+   ```bash
+   # 注册 DeepSeek 账号：https://platform.deepseek.com/
+   # 获取 API Key 后，创建 .env 文件
+   cp .env.example .env
+
+   # 编辑 .env 文件，添加：
+   OPENAI_API_KEY=sk-your-deepseek-api-key-here
+   OPENAI_BASE_URL=https://api.deepseek.com
+   OPENAI_MODEL=deepseek-chat
+   PROJECT_PATH=/path/to/your/project
+   ```
+
 ### 1. 安装依赖
 
 #### 方式 1: 使用 uv（推荐，极快）
