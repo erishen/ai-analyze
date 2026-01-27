@@ -234,6 +234,7 @@ make help
   - 数据库需求（PostgreSQL、MySQL、MongoDB、Redis）
   - 依赖关系
   - 配置文件
+  - **package-lock.json 存在性**（智能选择 `npm ci` 或 `npm install`）
 - **AI 优化建议**：
   - 基础镜像选择（alpine、slim、distroless）
   - 多阶段构建策略
