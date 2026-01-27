@@ -14,7 +14,12 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from serena_stdio_client import SerenaStdioClient  # noqa: E402
 
+# 检查 Serena 是否可用
+SERENA_DIR = os.getenv("SERENA_DIR", "/Users/erishen/Github/serena")
+SERENA_AVAILABLE = os.path.exists(SERENA_DIR) or os.path.exists(os.path.join(SERENA_DIR, "pyproject.toml"))
 
+
+@pytest.mark.skipif(not SERENA_AVAILABLE, reason="Serena 服务器未安装")
 @pytest.mark.asyncio
 async def test_list_tools():
     """测试列出工具"""
@@ -31,6 +36,7 @@ async def test_list_tools():
             print(f"{i:2d}. {name:30s} - {description}")
 
 
+@pytest.mark.skipif(not SERENA_AVAILABLE, reason="Serena 服务器未安装")
 @pytest.mark.asyncio
 async def test_find_file():
     """测试查找文件"""
@@ -44,6 +50,7 @@ async def test_find_file():
         print(json.dumps(result, indent=2, ensure_ascii=False))
 
 
+@pytest.mark.skipif(not SERENA_AVAILABLE, reason="Serena 服务器未安装")
 @pytest.mark.asyncio
 async def test_find_symbol():
     """测试查找符号"""
@@ -57,6 +64,7 @@ async def test_find_symbol():
         print(json.dumps(result, indent=2, ensure_ascii=False))
 
 
+@pytest.mark.skipif(not SERENA_AVAILABLE, reason="Serena 服务器未安装")
 @pytest.mark.asyncio
 async def test_symbols_overview():
     """测试符号概览"""
@@ -92,6 +100,7 @@ async def test_symbols_overview():
                 print(f"  {i}. {symbol.get('name', 'N/A')} ({kind_name})")
 
 
+@pytest.mark.skipif(not SERENA_AVAILABLE, reason="Serena 服务器未安装")
 @pytest.mark.asyncio
 async def test_search_pattern():
     """测试搜索模式"""
@@ -129,6 +138,7 @@ async def test_search_pattern():
             print(f"\n找到 {total_matches} 个匹配项 (显示前 3 个)")
 
 
+@pytest.mark.skipif(not SERENA_AVAILABLE, reason="Serena 服务器未安装")
 @pytest.mark.asyncio
 async def test_list_dir():
     """测试列出目录"""
@@ -142,6 +152,7 @@ async def test_list_dir():
         print(json.dumps(result, indent=2, ensure_ascii=False))
 
 
+@pytest.mark.skipif(not SERENA_AVAILABLE, reason="Serena 服务器未安装")
 @pytest.mark.asyncio
 async def test_comprehensive_workflow():
     """测试综合工作流"""
@@ -196,6 +207,12 @@ async def main():
     print("\n注意: Stdio 客户端会自动启动和管理 MCP 服务器进程")
     print("无需手动启动服务器!")
     print("=" * 60)
+
+    if not SERENA_AVAILABLE:
+        print("\n警告: Serena 服务器未安装，跳过集成测试")
+        print(f"请安装 Serena: git clone git@github.com:oraios/serena.git")
+        print("或设置 SERENA_DIR 环境变量")
+        return
 
     try:
         await test_list_tools()
