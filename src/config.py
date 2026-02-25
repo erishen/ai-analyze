@@ -1,0 +1,279 @@
+"""
+配置管理系统
+支持环境变量、配置文件、默认值的优先级管理
+"""
+
+import os
+import json
+from pathlib import Path
+from typing import Optional, Dict, Any
+from dataclasses import dataclass, asdict
+import logging
+
+from .exceptions import (
+    ConfigException,
+    ConfigNotFoundError,
+    InvalidConfigException,
+    MissingConfigKeyException
+)
+
+
+@dataclass
+class AnalysisConfig:
+    """分析配置"""
+    
+    # 项目路径
+    project_path: str = ""
+    
+    # Serena 配置
+    serena_dir: str = ""
+    
+    # AST 配置
+    ast_enabled: bool = True
+    ast_max_depth: int = 10
+    ast_languages: list = None
+    
+    # AI 配置
+    ai_enabled: bool = True
+    openai_api_key: str = ""
+    openai_base_url: str = "https://api.openai.com/v1"
+    openai_model: str = "gpt-3.5-turbo"
+    ai_timeout: int = 30
+    ai_max_retries: int = 3
+    
+    # Docker 配置
+    docker_enabled: bool = True
+    docker_base_image: str = "python:3.11-slim"
+    
+    # 缓存配置
+    cache_enabled: bool = True
+    cache_ttl: int = 3600  # 1 小时
+    cache_dir: str = ".cache"
+    
+    # 增量分析配置
+    incremental_enabled: bool = True
+    
+    # 日志配置
+    log_level: str = "INFO"
+    log_dir: str = "logs"
+    
+    # 输出配置
+    output_dir: str = "reports"
+    output_format: str = "json"  # json, markdown, html
+    
+    def __post_init__(self):
+        """初始化后处理"""
+        if self.ast_languages is None:
+            self.ast_languages = ["python", "javascript", "go", "java"]
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """转换为字典"""
+        return asdict(self)
+    
+    def to_json(self) -> str:
+        """转换为 JSON 字符串"""
+        return json.dumps(self.to_dict(), indent=2, ensure_ascii=False)
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "AnalysisConfig":
+        """从字典创建配置"""
+        return cls(**data)
+    
+    @classmethod
+    def from_json(cls, json_str: str) -> "AnalysisConfig":
+        """从 JSON 字符串创建配置"""
+        data = json.loads(json_str)
+        return cls.from_dict(data)
+
+
+class ConfigManager:
+    """配置管理器"""
+    
+    _instance = None
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
+    
+    def __init__(self):
+        if self._initialized:
+            return
+        
+        self._initialized = True
+        self.logger = logging.getLogger("ai-analyze.config")
+        self.config = AnalysisConfig()
+        self._load_config()
+    
+    def _load_config(self):
+        """加载配置"""
+        # 1. 加载默认配置
+        self._load_defaults()
+        
+        # 2. 加载配置文件
+        self._load_from_file()
+        
+        # 3. 加载环境变量
+        self._load_from_env()
+    
+    def _load_defaults(self):
+        """加载默认配置"""
+        self.config = AnalysisConfig()
+        self.logger.debug("已加载默认配置")
+    
+    def _load_from_file(self):
+        """从配置文件加载"""
+        config_file = Path(".env.json")
+        if not config_file.exists():
+            config_file = Path("config.json")
+        
+        if config_file.exists():
+            try:
+                with open(config_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                
+                # 更新配置
+                for key, value in data.items():
+                    if hasattr(self.config, key):
+                        setattr(self.config, key, value)
+                
+                self.logger.info(f"已从 {config_file} 加载配置")
+            except Exception as e:
+                self.logger.warning(f"加载配置文件失败: {e}")
+    
+    def _load_from_env(self):
+        """从环境变量加载"""
+        # 项目路径
+        if project_path := os.getenv("PROJECT_PATH"):
+            self.config.project_path = project_path
+        
+        # Serena 目录
+        if serena_dir := os.getenv("SERENA_DIR"):
+            self.config.serena_dir = serena_dir
+        
+        # AI 配置
+        if api_key := os.getenv("OPENAI_API_KEY"):
+            self.config.openai_api_key = api_key
+        
+        if base_url := os.getenv("OPENAI_BASE_URL"):
+            self.config.openai_base_url = base_url
+        
+        if model := os.getenv("OPENAI_MODEL"):
+            self.config.openai_model = model
+        
+        # 日志级别
+        if log_level := os.getenv("LOG_LEVEL"):
+            self.config.log_level = log_level
+        
+        self.logger.debug("已从环境变量加载配置")
+    
+    def get_config(self) -> AnalysisConfig:
+        """获取配置"""
+        return self.config
+    
+    def set_config(self, **kwargs):
+        """设置配置"""
+        for key, value in kwargs.items():
+            if hasattr(self.config, key):
+                setattr(self.config, key, value)
+                self.logger.debug(f"设置配置: {key}={value}")
+            else:
+                self.logger.warning(f"未知配置项: {key}")
+    
+    def validate(self) -> bool:
+        """验证配置"""
+        errors = []
+        
+        # 检查必需的配置
+        if not self.config.project_path:
+            errors.append("PROJECT_PATH 未设置")
+        
+        if self.config.ai_enabled and not self.config.openai_api_key:
+            errors.append("AI 已启用但 OPENAI_API_KEY 未设置")
+        
+        if errors:
+            error_msg = "; ".join(errors)
+            self.logger.error(f"配置验证失败: {error_msg}")
+            raise InvalidConfigException(error_msg)
+        
+        self.logger.info("配置验证通过")
+        return True
+    
+    def save_to_file(self, filepath: str = "config.json"):
+        """保存配置到文件"""
+        try:
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(self.config.to_json())
+            self.logger.info(f"配置已保存到 {filepath}")
+        except Exception as e:
+            self.logger.error(f"保存配置失败: {e}")
+            raise ConfigException(f"保存配置失败: {e}")
+    
+    def load_from_file(self, filepath: str):
+        """从文件加载配置"""
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            self.config = AnalysisConfig.from_dict(data)
+            self.logger.info(f"配置已从 {filepath} 加载")
+        except Exception as e:
+            self.logger.error(f"加载配置失败: {e}")
+            raise ConfigException(f"加载配置失败: {e}")
+    
+    def print_config(self):
+        """打印配置"""
+        print("\n" + "=" * 60)
+        print("📋 当前配置")
+        print("=" * 60)
+        for key, value in self.config.to_dict().items():
+            if "key" in key.lower() or "password" in key.lower():
+                # 隐藏敏感信息
+                value = "***" if value else ""
+            print(f"  {key}: {value}")
+        print("=" * 60 + "\n")
+
+
+# 全局配置管理器实例
+_config_manager = ConfigManager()
+
+
+def get_config() -> AnalysisConfig:
+    """获取全局配置"""
+    return _config_manager.get_config()
+
+
+def set_config(**kwargs):
+    """设置全局配置"""
+    _config_manager.set_config(**kwargs)
+
+
+def validate_config() -> bool:
+    """验证全局配置"""
+    return _config_manager.validate()
+
+
+def save_config(filepath: str = "config.json"):
+    """保存全局配置"""
+    _config_manager.save_to_file(filepath)
+
+
+def load_config(filepath: str):
+    """加载全局配置"""
+    _config_manager.load_from_file(filepath)
+
+
+def print_config():
+    """打印全局配置"""
+    _config_manager.print_config()
+
+
+if __name__ == "__main__":
+    # 测试配置系统
+    config = get_config()
+    print(f"项目路径: {config.project_path}")
+    print(f"AI 启用: {config.ai_enabled}")
+    print(f"缓存启用: {config.cache_enabled}")
+    
+    # 打印所有配置
+    print_config()

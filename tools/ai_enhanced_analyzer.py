@@ -54,8 +54,8 @@ class AIEnhancedAnalyzer:
         Returns:
             AI 分析结果，包括质量评估、建议等
         """
-        # 准备提示词
-        prompt = self._prepare_quality_analysis_prompt(analysis_data)
+        # 准备增强的提示词（包含复杂度信息）
+        prompt = self._build_enhanced_prompt(analysis_data)
 
         # 尝试从缓存获取
         project_path = analysis_data.get("project_path", "")
@@ -90,6 +90,220 @@ class AIEnhancedAnalyzer:
                 "error": f"AI 分析失败: {str(e)}",
                 "raw_analysis": None
             }
+    
+    def _extract_complexity_hotspots(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """提取代码复杂度热点"""
+        hotspots = {
+            "complex_functions": [],
+            "large_classes": [],
+            "deep_nesting": [],
+            "summary": ""
+        }
+        
+        # 尝试从 AST 分析结果中提取
+        ast_analysis = data.get("ast_analysis", {})
+        if not ast_analysis:
+            return hotspots
+        
+        # 提取复杂度最高的函数
+        functions = ast_analysis.get("functions", [])
+        if functions:
+            # 按圈复杂度排序
+            sorted_functions = sorted(
+                functions,
+                key=lambda f: f.get("complexity", {}).get("cyclomatic_complexity", 0),
+                reverse=True
+            )[:5]
+            
+            for func in sorted_functions:
+                hotspots["complex_functions"].append({
+                    "name": func.get("name", "unknown"),
+                    "file": func.get("file_path", "unknown"),
+                    "complexity": func.get("complexity", {}),
+                    "lines": func.get("lines", 0)
+                })
+        
+        # 提取大类
+        classes = ast_analysis.get("classes", [])
+        if classes:
+            sorted_classes = sorted(
+                classes,
+                key=lambda c: c.get("lines", 0),
+                reverse=True
+            )[:5]
+            
+            for cls in sorted_classes:
+                hotspots["large_classes"].append({
+                    "name": cls.get("name", "unknown"),
+                    "file": cls.get("file_path", "unknown"),
+                    "lines": cls.get("lines", 0),
+                    "methods": len(cls.get("methods", []))
+                })
+        
+        # 提取深层嵌套
+        code_smells = ast_analysis.get("code_smells", [])
+        if code_smells:
+            deep_nesting = [s for s in code_smells if "Deep Nesting" in s.get("name", "")][:3]
+            hotspots["deep_nesting"] = deep_nesting
+        
+        # 生成摘要
+        summary_parts = []
+        if hotspots["complex_functions"]:
+            summary_parts.append(f"发现 {len(hotspots['complex_functions'])} 个高复杂度函数")
+        if hotspots["large_classes"]:
+            summary_parts.append(f"发现 {len(hotspots['large_classes'])} 个大类")
+        if hotspots["deep_nesting"]:
+            summary_parts.append(f"发现 {len(hotspots['deep_nesting'])} 处深层嵌套")
+        
+        hotspots["summary"] = "；".join(summary_parts) if summary_parts else "代码复杂度正常"
+        
+        return hotspots
+    
+    def _extract_code_smells(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """提取代码坏味道"""
+        smells = []
+        
+        # 尝试从 AST 分析结果中提取
+        ast_analysis = data.get("ast_analysis", {})
+        if not ast_analysis:
+            return smells
+        
+        code_smells = ast_analysis.get("code_smells", [])
+        
+        # 按严重程度排序
+        severity_order = {"high": 0, "medium": 1, "low": 2}
+        sorted_smells = sorted(
+            code_smells,
+            key=lambda s: severity_order.get(s.get("severity", "low"), 3)
+        )[:10]  # 取前10个
+        
+        for smell in sorted_smells:
+            smells.append({
+                "name": smell.get("name", "unknown"),
+                "severity": smell.get("severity", "low"),
+                "location": smell.get("location", "unknown"),
+                "description": smell.get("description", ""),
+                "suggestion": smell.get("suggestion", "")
+            })
+        
+        return smells
+    
+    def _build_dependency_graph(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """构建依赖图"""
+        graph = {
+            "imports": [],
+            "circular_dependencies": [],
+            "external_dependencies": [],
+            "summary": ""
+        }
+        
+        # 尝试从 AST 分析结果中提取
+        ast_analysis = data.get("ast_analysis", {})
+        if not ast_analysis:
+            return graph
+        
+        # 提取导入信息
+        imports = ast_analysis.get("imports", [])
+        if imports:
+            # 统计导入
+            import_counts = {}
+            for imp in imports[:20]:  # 取前20个
+                import_counts[imp] = import_counts.get(imp, 0) + 1
+            
+            graph["imports"] = [
+                {"module": mod, "count": count}
+                for mod, count in sorted(import_counts.items(), key=lambda x: x[1], reverse=True)
+            ]
+        
+        # 生成摘要
+        graph["summary"] = f"检测到 {len(imports)} 个导入，{len(set(imports))} 个唯一模块"
+        
+        return graph
+    
+    def _build_enhanced_prompt(self, data: Dict[str, Any]) -> str:
+        """构建增强的 AI Prompt，包含复杂度信息"""
+        
+        # 提取复杂度热点
+        hotspots = self._extract_complexity_hotspots(data)
+        
+        # 提取代码坏味道
+        smells = self._extract_code_smells(data)
+        
+        # 构建依赖图
+        deps = self._build_dependency_graph(data)
+        
+        # 构建增强的 Prompt
+        base_prompt = self._prepare_quality_analysis_prompt(data)
+        
+        # 添加复杂度信息
+        enhanced_prompt = base_prompt + f"""
+
+## 🔴 代码复杂度分析
+
+### 复杂度热点
+{hotspots['summary']}
+
+"""
+        
+        if hotspots["complex_functions"]:
+            enhanced_prompt += "#### 高复杂度函数\n\n"
+            for func in hotspots["complex_functions"]:
+                cc = func.get("complexity", {}).get("cyclomatic_complexity", 0)
+                enhanced_prompt += f"- **{func['name']}** ({func['file']})\n"
+                enhanced_prompt += f"  - 圈复杂度: {cc}\n"
+                enhanced_prompt += f"  - 代码行数: {func['lines']}\n"
+        
+        if hotspots["large_classes"]:
+            enhanced_prompt += "\n#### 大类\n\n"
+            for cls in hotspots["large_classes"]:
+                enhanced_prompt += f"- **{cls['name']}** ({cls['file']})\n"
+                enhanced_prompt += f"  - 代码行数: {cls['lines']}\n"
+                enhanced_prompt += f"  - 方法数: {cls['methods']}\n"
+        
+        # 添加代码坏味道
+        if smells:
+            enhanced_prompt += f"\n## ⚠️ 代码坏味道检测\n\n发现 {len(smells)} 个代码坏味道：\n\n"
+            for smell in smells[:5]:  # 显示前5个
+                severity_emoji = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(smell["severity"], "⚪")
+                enhanced_prompt += f"- {severity_emoji} **{smell['name']}** ({smell['severity']})\n"
+                enhanced_prompt += f"  - 位置: {smell['location']}\n"
+                enhanced_prompt += f"  - 建议: {smell['suggestion']}\n"
+        
+        # 添加依赖信息
+        if deps["imports"]:
+            enhanced_prompt += f"\n## 📦 依赖分析\n\n{deps['summary']}\n\n"
+            enhanced_prompt += "#### 主要依赖\n\n"
+            for imp in deps["imports"][:5]:
+                enhanced_prompt += f"- {imp['module']} (引用 {imp['count']} 次)\n"
+        
+        enhanced_prompt += """
+
+## 🎯 分析重点
+
+基于上述复杂度分析，请重点关注：
+
+1. **高复杂度函数的优化**
+   - 这些函数是否可以拆分成更小的函数？
+   - 是否存在重复代码可以提取？
+   - 是否可以使用设计模式简化逻辑？
+
+2. **大类的重构**
+   - 这些类是否违反了单一职责原则？
+   - 是否可以拆分成多个更小的类？
+   - 是否存在可以提取的公共基类？
+
+3. **代码坏味道的改进**
+   - 如何消除检测到的代码坏味道？
+   - 是否需要重构来改进代码质量？
+
+4. **依赖管理**
+   - 是否存在循环依赖？
+   - 依赖关系是否合理？
+   - 是否需要优化导入结构？
+
+请提供具体、可操作的改进建议。"""
+        
+        return enhanced_prompt
     
     def _prepare_quality_analysis_prompt(self, data: Dict[str, Any]) -> str:
         """准备代码质量分析的提示词"""

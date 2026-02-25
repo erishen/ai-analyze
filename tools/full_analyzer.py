@@ -8,8 +8,12 @@ import os
 import sys
 import subprocess
 import argparse
+import asyncio
+import json
 from pathlib import Path
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
+from typing import Optional
 
 # 加载 .env 环境变量
 from dotenv import load_dotenv
@@ -22,6 +26,11 @@ if str(ai_analyze_root) not in sys.path:
 
 # 加载环境变量
 load_dotenv(ai_analyze_root / '.env')
+
+# 导入统一分析器
+from src.unified_analyzer import UnifiedAnalyzer
+from src.incremental_analyzer import IncrementalAnalyzer
+from src.analysis_integration import AnalysisIntegrator
 
 
 def confirm(prompt: str, yes_mode: bool = False) -> bool:
@@ -45,9 +54,9 @@ def confirm(prompt: str, yes_mode: bool = False) -> bool:
         return False
 
 
-def run_serena_analysis(format_type="json"):
-    """运行 Serena 分析"""
-    print("🔍 步骤 1/3: 运行 Serena 代码结构分析...")
+def run_serena_analysis_sync(format_type="json"):
+    """运行 Serena 分析 (同步版本)"""
+    print("🔍 运行 Serena 代码结构分析...")
     
     cmd = [
         sys.executable,
@@ -79,9 +88,37 @@ def run_serena_analysis(format_type="json"):
     return str(latest_report)
 
 
+def run_ast_analysis_sync(project_path: str):
+    """运行 AST 分析 (同步版本)"""
+    print("🌳 运行 AST 代码分析...")
+    
+    cmd = [
+        sys.executable,
+        str(script_dir / "ast_analyzer_tool.py"),
+        project_path,
+        "--format", "json",
+        "--output", str(ai_analyze_root / "reports" / "ast_analysis.json")
+    ]
+    
+    result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(ai_analyze_root))
+    
+    if result.returncode != 0:
+        print(f"⚠️  AST 分析失败: {result.stderr}")
+        return None
+    
+    print(result.stdout)
+    
+    ast_report = ai_analyze_root / "reports" / "ast_analysis.json"
+    if ast_report.exists():
+        print(f"✅ AST 分析完成: {ast_report.name}")
+        return str(ast_report)
+    
+    return None
+
+
 def run_ai_enhancement(serena_report_path, replace_original=False, use_cache=True, cache_ttl=3600):
     """运行 AI 增强分析"""
-    print("\n🤖 步骤 2/3: 运行 AI 深度分析...")
+    print("\n🤖 步骤 3/4: 运行 AI 深度分析...")
 
     # 准备命令
     cmd = [
@@ -131,85 +168,22 @@ def run_ai_enhancement(serena_report_path, replace_original=False, use_cache=Tru
     return True
 
 
-def run_docker_generation(serena_report_path, force=False):
-    """运行 Docker 生成"""
-    print("\n🐳 步骤 3/3: 生成 Docker 配置...")
-    
-    # 初始化变量
-    base_image = None
+def run_docker_generation(serena_report_path, force=False, analysis_data=None):
+    """运行 Docker 生成（基于规则和代码复杂度分析）"""
+    print("\n🐳 步骤 4/4: 生成 Docker 配置...")
     
     # 读取 Serena 报告获取项目路径
     import json
     with open(serena_report_path, 'r') as f:
-        analysis_data = json.load(f)
+        if not analysis_data:
+            analysis_data = json.load(f)
     
     project_path = analysis_data.get('project_path', '')
     if not project_path:
         print("❌ 无法从报告中获取项目路径")
         return False
     
-    # 查找对应的 Docker 策略缓存文件
-    import re
-    cache_dir = ai_analyze_root / '.cache'
-    
-    # 读取报告获取生成时间戳来匹配缓存
-    docker_strategy_arg = None
-    try:
-        with open(serena_report_path, 'r') as f:
-            report_data = json.load(f)
-        report_timestamp = report_data.get('generated_at')
-        
-        if report_timestamp:
-            # 转换 ISO 时间戳为数字格式来匹配缓存文件名
-            # 例如: 2026-01-25T15:45:39.448266 -> 提取日期部分 20260125
-            dt = datetime.fromisoformat(report_timestamp.replace('Z', '+00:00'))
-            date_part = dt.strftime('%Y%m%d')
-            
-            # 查找同一天生成的所有缓存文件
-            cache_pattern = f"*_{date_part}_docker_strategy.json"
-            cache_files = list(cache_dir.glob(cache_pattern))
-            
-            # 如果没有按日期找到，尝试查找任何 docker_strategy 文件
-            if not cache_files:
-                cache_files = list(cache_dir.glob("*_docker_strategy.json"))
-            
-            if cache_files:
-                # 使用找到的第一个缓存文件（通常是最新的）
-                docker_strategy_path = cache_files[0]
-                docker_strategy_arg = str(docker_strategy_path)
-                print(f"📊 找到 Docker 策略缓存: {docker_strategy_path.name}")
-                
-                # 读取缓存文件获取 base_image
-                with open(docker_strategy_path, 'r') as f:
-                    strategy_data = json.load(f)
-                base_image = strategy_data.get('data', {}).get('base_image')
-                if base_image:
-                    print(f"🐳 使用 AI 推荐的基础镜像: {base_image}")
-                    # 将 base_image 作为环境变量传递给 docker_generator
-                    os.environ['AI_RECOMMENDED_BASE_IMAGE'] = base_image
-                recommended_port = strategy_data.get('data', {}).get('recommended_port', 3000)
-                if recommended_port != 3000:
-                    os.environ['AI_RECOMMENDED_PORT'] = str(recommended_port)
-    except Exception as e:
-        print(f"⚠️  查找 Docker 策略缓存失败: {e}")
-        # 如果按时间戳匹配失败，尝试查找任何 docker_strategy 文件作为备用
-        try:
-            cache_files = list(cache_dir.glob("*_docker_strategy.json"))
-            if cache_files:
-                docker_strategy_path = cache_files[0]
-                docker_strategy_arg = str(docker_strategy_path)
-                print(f"📊 使用备用缓存文件: {docker_strategy_path.name}")
-                
-                with open(docker_strategy_path, 'r') as f:
-                    strategy_data = json.load(f)
-                base_image = strategy_data.get('data', {}).get('base_image')
-                if base_image:
-                    print(f"🐳 使用 AI 推荐的基础镜像: {base_image}")
-                    os.environ['AI_RECOMMENDED_BASE_IMAGE'] = base_image
-        except Exception as e2:
-            print(f"⚠️  备用缓存查找也失败: {e2}")
-    
-    # 运行 Docker 生成
+    # 运行 Docker 生成（现在完全基于规则，自动检测端口和基础镜像）
     cmd = [
         sys.executable,
         str(script_dir / "docker_generator.py"),
@@ -217,25 +191,10 @@ def run_docker_generation(serena_report_path, force=False):
         "--analysis", serena_report_path
     ]
     
-    # 优先使用策略文件参数（更可靠）而不是环境变量
-    if docker_strategy_arg:
-        # 使用 --strategy 参数直接传递，避免环境变量传递问题
-        cmd.extend(["--strategy", docker_strategy_arg])
-        print(f"🐳 使用策略文件传递基础镜像: {base_image}")
-    else:
-        # 备用：使用环境变量（可能在某些环境下不可靠）
-        if base_image:
-            os.environ['AI_RECOMMENDED_BASE_IMAGE'] = base_image
-            print(f"🐳 使用环境变量传递基础镜像: {base_image}")
-    
     if force:
         cmd.append("--force")
     
     result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(ai_analyze_root))
-    
-    # 清理临时环境变量
-    os.environ.pop('AI_RECOMMENDED_BASE_IMAGE', None)
-    os.environ.pop('AI_RECOMMENDED_PORT', None)
     
     if result.returncode != 0:
         print(f"❌ Docker 生成失败: {result.stderr}")
@@ -245,17 +204,156 @@ def run_docker_generation(serena_report_path, force=False):
     return True
 
 
+async def run_integrated_analysis(
+    unified_report_path: str,
+    project_path: str
+) -> Optional[str]:
+    """运行集成分析（相似性检测 + 质量评分）"""
+    print("\n🔗 步骤 2.6: 运行集成分析（相似性检测 + 质量评分）...")
+    
+    try:
+        # 加载统一分析结果
+        with open(unified_report_path, 'r', encoding='utf-8') as f:
+            unified_analysis = json.load(f)
+        
+        # 创建集成分析器
+        from src.analysis_integration import AnalysisIntegrator
+        integrator = AnalysisIntegrator(project_path)
+        
+        # 运行集成分析
+        result = await integrator.integrate_analysis(unified_analysis)
+        
+        # 保存结果
+        output_file = integrator.save_results(result, Path(unified_report_path).parent)
+        
+        print(f"✅ 集成分析完成: {output_file.name}")
+        print(f"   - 重复代码对: {result.similarity_analysis.get('duplicate_pairs', 0)}")
+        print(f"   - 相似代码对: {result.similarity_analysis.get('similar_pairs', 0)}")
+        print(f"   - 质量评分: {result.quality_scores.get('overall_score', 0):.1f}/100 [{result.quality_scores.get('grade', 'F')}]")
+        
+        return str(output_file)
+    
+    except Exception as e:
+        print(f"❌ 集成分析失败: {e}")
+        return None
+
+
+async def run_analyses_parallel(project_path: str):
+    """并行运行 Serena 和 AST 分析"""
+    loop = asyncio.get_event_loop()
+    
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        print("\n🔄 并行运行 Serena 和 AST 分析...")
+        
+        # 提交两个任务
+        serena_task = loop.run_in_executor(
+            executor,
+            run_serena_analysis_sync
+        )
+        ast_task = loop.run_in_executor(
+            executor,
+            run_ast_analysis_sync,
+            project_path
+        )
+        
+        # 等待两个任务完成
+        serena_report, ast_report = await asyncio.gather(
+            serena_task,
+            ast_task,
+            return_exceptions=True
+        )
+        
+        # 处理异常
+        if isinstance(serena_report, Exception):
+            print(f"❌ Serena 分析失败: {serena_report}")
+            serena_report = None
+        
+        if isinstance(ast_report, Exception):
+            print(f"⚠️  AST 分析失败: {ast_report}")
+            ast_report = None
+    
+    return serena_report, ast_report
+
+
+async def merge_analyses_unified(
+    serena_report_path: str,
+    ast_report_path: str,
+    project_path: str,
+    incremental: Optional[IncrementalAnalyzer] = None
+):
+    """融合 Serena 和 AST 分析结果"""
+    print("\n🔗 融合 Serena 和 AST 分析结果...")
+    
+    try:
+        # 加载报告
+        with open(serena_report_path, 'r', encoding='utf-8') as f:
+            serena_report = json.load(f)
+        
+        with open(ast_report_path, 'r', encoding='utf-8') as f:
+            ast_report = json.load(f)
+        
+        # 创建统一分析器
+        analyzer = UnifiedAnalyzer(project_path)
+        
+        # 融合分析
+        unified = await analyzer.analyze_project(serena_report, ast_report)
+        
+        # 保存融合结果
+        # 从项目路径提取项目名
+        from datetime import datetime
+        project_name = Path(project_path).name or "project"
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        unified_report_path = Path(serena_report_path).parent / f"unified_analysis_{project_name}_{timestamp}.json"
+        unified_dict = analyzer.to_dict(unified)
+        
+        with open(unified_report_path, 'w', encoding='utf-8') as f:
+            f.write(analyzer.to_json(unified))
+        
+        print(f"✅ 融合完成: {unified_report_path.name}")
+        print(f"   - 文件数: {len(unified.files)}")
+        print(f"   - 总复杂度: {unified.total_complexity:.1f}")
+        print(f"   - 代码坏味道: {unified.total_code_smells}")
+        print(f"   - 质量分数: {unified.quality_score:.1f}/100")
+        
+        # 保存增量分析缓存
+        if incremental:
+            try:
+                # 计算所有文件的哈希
+                file_hashes = {}
+                for file_data in unified.files:
+                    file_path = file_data.file_path
+                    if Path(file_path).exists():
+                        file_hashes[file_path] = incremental.get_file_hash(file_path)
+                
+                # 保存缓存
+                incremental.save_cache(project_path, unified_dict, file_hashes)
+                print(f"💾 已缓存分析结果 ({len(file_hashes)} 个文件)")
+            except Exception as e:
+                print(f"⚠️  缓存保存失败: {e}")
+        
+        return str(unified_report_path)
+    
+    except Exception as e:
+        print(f"❌ 融合失败: {e}")
+        return None
+
+
 def main():
-    parser = argparse.ArgumentParser(description="一键完整分析（Serena + AI + Docker）")
+    parser = argparse.ArgumentParser(description="一键完整分析（Serena + AST + AI + Docker）")
+    parser.add_argument(
+        "--skip-ast",
+        action="store_true",
+        help="跳过 AST 分析"
+    )
     parser.add_argument(
         "--skip-ai",
         action="store_true",
-        help="跳过 AI 分析，只运行 Serena + Docker"
+        help="跳过 AI 分析，只运行 Serena + AST + Docker"
     )
     parser.add_argument(
         "--skip-docker",
         action="store_true",
-        help="跳过 Docker 生成，只运行 Serena + AI"
+        help="跳过 Docker 生成，只运行 Serena + AST + AI"
     )
     parser.add_argument(
         "--serena-only",
@@ -288,14 +386,31 @@ def main():
         default=3600,
         help="缓存有效期（秒），默认 3600 秒（1 小时）"
     )
+    parser.add_argument(
+        "--clear-cache",
+        action="store_true",
+        help="清除所有缓存"
+    )
+    parser.add_argument(
+        "--no-incremental",
+        action="store_true",
+        help="禁用增量分析，强制完整分析"
+    )
 
     args = parser.parse_args()
 
     print("=" * 60)
-    print("🚀 一键完整分析工具 (Serena + AI + Docker)")
+    print("🚀 一键完整分析工具 (Serena + AST + AI + Docker)")
     print("=" * 60)
     
     start_time = datetime.now()
+    
+    # 处理清除缓存命令
+    if args.clear_cache:
+        incremental = IncrementalAnalyzer()
+        count = incremental.clear_cache()
+        print(f"✅ 已清除 {count} 个缓存文件")
+        sys.exit(0)
     
     # 检查 API Key
     if not args.serena_only and not args.skip_ai:
@@ -305,19 +420,30 @@ def main():
             if not confirm("   是否继续？", args.yes):
                 sys.exit(1)
     
-    # 步骤 1: Serena 分析
+    # 步骤 1-2: 并行运行 Serena 和 AST 分析
     if args.report:
         # 使用已有的报告
         if not Path(args.report).exists():
             print(f"❌ 报告文件不存在: {args.report}")
             sys.exit(1)
         serena_report = args.report
+        ast_report = None
         print(f"📄 使用已有报告: {serena_report}")
     else:
-        # 运行 Serena 分析
-        serena_report = run_serena_analysis()
-        if not serena_report:
-            sys.exit(1)
+        # 并行执行 Serena 和 AST 分析
+        if args.serena_only or args.skip_ast:
+            # 只运行 Serena
+            serena_report = run_serena_analysis_sync()
+            ast_report = None
+            if not serena_report:
+                sys.exit(1)
+        else:
+            # 并行运行
+            serena_report, ast_report = asyncio.run(
+                run_analyses_parallel(os.getcwd())
+            )
+            if not serena_report:
+                sys.exit(1)
     
     # 读取 Serena 报告获取项目信息
     import json
@@ -325,7 +451,55 @@ def main():
         analysis_data = json.load(f)
     project_path = analysis_data.get('project_path', '')
     
-    # 步骤 2: AI 分析（可选）
+    # 步骤 2.3: 检查增量分析（如果启用）
+    incremental = IncrementalAnalyzer()
+    use_incremental = not args.no_incremental and not args.serena_only
+    
+    if use_incremental and ast_report:
+        # ast_report 是文件路径，需要加载 JSON
+        try:
+            with open(ast_report, 'r', encoding='utf-8') as f:
+                ast_report_data = json.load(f)
+            
+            # 获取当前文件列表
+            current_files = []
+            for file_data in ast_report_data.get("files", []):
+                current_files.append(file_data.get("file_path", ""))
+            
+            # 加载缓存
+            cached_data = incremental.load_cache(project_path)
+            
+            # 获取分析状态
+            status = incremental.get_analysis_status(project_path, current_files, cached_data)
+            
+            print(f"\n📊 增量分析状态: {status['message']}")
+            if status['status'] == 'no_changes':
+                print("✅ 使用缓存结果，跳过分析")
+                # 使用缓存的统一报告
+                unified_report = incremental.get_cache_path(project_path).parent / "unified_analysis.json"
+                if unified_report.exists():
+                    print(f"📄 加载缓存报告: {unified_report.name}")
+            else:
+                print(f"   - 修改文件: {len(status.get('modified_files', []))}")
+                print(f"   - 新增文件: {len(status.get('new_files', []))}")
+                print(f"   - 删除文件: {len(status.get('deleted_files', []))}")
+        except Exception as e:
+            print(f"⚠️  增量分析检查失败: {e}")
+    
+    # 步骤 2.5: 融合 Serena 和 AST 分析（如果都运行了）
+    unified_report = None
+    if ast_report and not args.skip_ast and not args.serena_only:
+        unified_report = asyncio.run(
+            merge_analyses_unified(serena_report, ast_report, project_path, incremental)
+        )
+        
+        # 步骤 2.6: 运行集成分析（相似性检测 + 质量评分）
+        if unified_report:
+            integrated_report = asyncio.run(
+                run_integrated_analysis(unified_report, project_path)
+            )
+    
+    # 步骤 3: AI 分析（可选）
     ai_ran = False
     if not args.serena_only and not args.skip_ai:
         # 使用 --replace 选项替换原始报告
@@ -341,7 +515,7 @@ def main():
             if not confirm("⚠️  AI 分析失败，是否继续 Docker 生成？", args.yes):
                 sys.exit(1)
     
-    # 步骤 3: Docker 生成（可选）
+    # 步骤 4: Docker 生成（可选）
     if not args.skip_docker and not args.serena_only:
         # 检查是否已有 Docker 配置
         from docker_generator import DockerGenerator
@@ -386,6 +560,22 @@ def main():
             # 根据是否运行了 AI 分析来显示不同的标签
             md_label = " (AI 增强版)" if ai_ran else ""
             print(f"   - {md_report.name}{md_label}")
+        
+        # 显示 AST 报告
+        if ast_report and Path(ast_report).exists():
+            print(f"   - {Path(ast_report).name}")
+            ast_md = ast_report.replace('.json', '.md')
+            if Path(ast_md).exists():
+                print(f"   - {Path(ast_md).name}")
+        
+        # 显示融合报告
+        if unified_report and Path(unified_report).exists():
+            print(f"   - {Path(unified_report).name} (融合分析)")
+        
+        # 显示集成分析报告
+        integrated_report_path = reports_dir / "integrated_analysis.json"
+        if integrated_report_path.exists():
+            print(f"   - {integrated_report_path.name} (相似性 + 质量评分)")
         
         # 显示 Docker 文件（如果生成了）
         if not args.skip_docker:
