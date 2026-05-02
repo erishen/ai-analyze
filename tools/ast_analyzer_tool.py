@@ -10,15 +10,15 @@ from pathlib import Path
 from typing import Dict, List, Any
 import logging
 
-# 添加 src 到路径
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
+# 添加项目根目录到路径
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from ast_analyzer import (
+from src.ast_analyzer import (  # noqa: E402
     ASTAnalyzerFactory,
     detect_language,
     FileAnalysisResult,
-    Language,
 )
+from src.ast_visualizer import ASTVisualizer  # noqa: E402
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ class ASTAnalysisTool:
     def analyze_project(self, file_patterns: List[str] = None) -> Dict[str, Any]:
         """分析整个项目"""
         from datetime import datetime
-        
+
         if file_patterns is None:
             file_patterns = ['**/*.py', '**/*.js', '**/*.ts', '**/*.tsx', '**/*.jsx']
 
@@ -176,9 +176,9 @@ class ASTAnalysisTool:
     def generate_report(self, output_path: str = None) -> str:
         """生成 AST 分析报告"""
         from datetime import datetime
-        
+
         results = self.analyze_project()
-        
+
         # 添加时间戳和日期
         now = datetime.now()
         results['timestamp'] = now.isoformat()
@@ -199,7 +199,7 @@ class ASTAnalysisTool:
     def generate_markdown_report(self, output_path: str = None) -> str:
         """生成 Markdown 格式的 AST 分析报告"""
         from datetime import datetime
-        
+
         results = self.analyze_project()
 
         if output_path is None:
@@ -216,11 +216,59 @@ class ASTAnalysisTool:
         logger.info(f"AST analysis markdown report saved to {output_path}")
         return output_path
 
+    def generate_visualization(
+        self,
+        output_dir: str = None,
+        formats: List[str] = None,
+    ) -> Dict[str, str]:
+        """
+        生成 AST 可视化报告
+
+        Args:
+            output_dir: 输出目录
+            formats: 输出格式列表 ['html', 'json']
+
+        Returns:
+            生成的文件路径字典
+        """
+        if output_dir is None:
+            output_dir = str(self.project_path / 'ast_visualizations')
+        if formats is None:
+            formats = ['html', 'json']
+
+        visualizer = ASTVisualizer(output_dir=output_dir)
+        results = self.analyze_project()
+        generated_files = {}
+
+        # 收集所有 FileAnalysisResult 对象
+        file_results = []
+        for file_path_str in [f['file_path'] for f in results['files']]:
+            try:
+                file_result = self.analyze_file(file_path_str)
+                if file_result:
+                    file_results.append(file_result)
+            except Exception as e:
+                logger.error(f"Failed to re-analyze {file_path_str}: {e}")
+
+        for fr in file_results:
+            for fmt in formats:
+                filepath = visualizer.visualize_tree(fr, output_format=fmt)
+                generated_files[f"tree_{Path(fr.file_path).stem}_{fmt}"] = filepath
+
+        # 生成热力图
+        if file_results:
+            for fmt in formats:
+                filepath = visualizer.visualize_complexity_heatmap(file_results, output_format=fmt)
+                generated_files[f"heatmap_{fmt}"] = filepath
+
+        logger.info(f"Generated {len(generated_files)} visualization files in {output_dir}")
+        return generated_files
+
     def _build_markdown_report(self, results: Dict[str, Any]) -> str:
         """构建 Markdown 报告内容"""
         summary = results['summary']
 
-        md = f"""# AST 代码分析报告
+        md = """# AST 代码分析报告
 
 ## 📊 项目概览
 
@@ -257,7 +305,7 @@ class ASTAnalysisTool:
                     md += f"  - 圈复杂度: {func['complexity']['cyclomatic']}\n"
                     md += f"  - 参数数: {len(func['parameters'])}\n"
                     if func['is_async']:
-                        md += f"  - 异步函数\n"
+                        md += "  - 异步函数\n"
 
             if file_info['classes']:
                 md += f"\n#### 类列表 ({len(file_info['classes'])})\n\n"
@@ -291,21 +339,28 @@ def main():
 
     parser = argparse.ArgumentParser(description='AST 代码分析工具')
     parser.add_argument('project_path', help='项目路径')
-    parser.add_argument('--format', choices=['json', 'markdown'], default='json',
+    parser.add_argument('--format', choices=['json', 'markdown', 'visualize'], default='json',
                         help='输出格式 (默认: json)')
     parser.add_argument('--output', help='输出文件路径')
     parser.add_argument('--patterns', nargs='+', help='文件匹配模式')
+    parser.add_argument('--viz-formats', nargs='+', default=['html', 'json'],
+                        help='可视化输出格式 (默认: html json)')
 
     args = parser.parse_args()
 
     tool = ASTAnalysisTool(args.project_path)
 
-    if args.format == 'markdown':
+    if args.format == 'visualize':
+        files = tool.generate_visualization(formats=args.viz_formats)
+        for name, path in files.items():
+            print(f"  {name}: {path}")
+        print(f"✅ 可视化完成: {len(files)} files generated")
+    elif args.format == 'markdown':
         output_path = tool.generate_markdown_report(args.output)
+        print(f"✅ 分析完成: {output_path}")
     else:
         output_path = tool.generate_report(args.output)
-
-    print(f"✅ 分析完成: {output_path}")
+        print(f"✅ 分析完成: {output_path}")
 
 
 if __name__ == '__main__':

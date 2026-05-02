@@ -49,3 +49,17 @@ reports/
 .serena
 .cache
 .pytest_cache
+
+# 测试覆盖率
+.coverage
+.coverage-report/
+
+# 类型检查缓存
+.mypy_cache/
+
+# 项目缓存
+.ai-analyze-cache/
+
+# 生成文件
+PERFORMANCE_REPORT.json
+ast_analysis_*.json

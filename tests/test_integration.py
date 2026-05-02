@@ -4,15 +4,14 @@
 """
 
 import sys
-import json
 from pathlib import Path
 
 # 添加项目路径
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.analysis_integration import AnalysisIntegrator
-from src.similarity import SimilarityDetector, CodeBlock
-from src.quality_score import QualityScorer, QualityMetrics
+from src.analysis_integration import AnalysisIntegrator  # noqa: E402
+from src.similarity import SimilarityDetector, CodeBlock  # noqa: E402
+from src.quality_score import QualityScorer, QualityMetrics  # noqa: E402
 
 
 def test_similarity_detector():
@@ -20,7 +19,7 @@ def test_similarity_detector():
     print("=" * 60)
     print("测试 1: 相似性检测")
     print("=" * 60)
-    
+
     # 创建测试代码块
     code1 = """
 def calculate_sum(numbers):
@@ -29,7 +28,7 @@ def calculate_sum(numbers):
         total += num
     return total
 """
-    
+
     code2 = """
 def calculate_sum(items):
     result = 0
@@ -37,20 +36,20 @@ def calculate_sum(items):
         result += item
     return result
 """
-    
+
     block1 = CodeBlock("file1.py", 1, 5, code1)
     block2 = CodeBlock("file2.py", 1, 5, code2)
-    
+
     detector = SimilarityDetector()
     detector.add_code_blocks([block1, block2])
-    
+
     similar = detector.detect_similar(threshold=0.5)
-    
+
     print(f"✅ 检测到 {len(similar)} 个相似代码对")
     if similar:
         for s in similar:
             print(f"   - 相似度: {s.similarity:.1%}")
-    
+
     print()
 
 
@@ -59,7 +58,7 @@ def test_quality_scorer():
     print("=" * 60)
     print("测试 2: 质量评分")
     print("=" * 60)
-    
+
     metrics = QualityMetrics(
         cyclomatic_complexity=8.5,
         cognitive_complexity=15.2,
@@ -73,21 +72,21 @@ def test_quality_scorer():
         maintainability_index=75.0,
         technical_debt=0.3
     )
-    
+
     scorer = QualityScorer()
     score = scorer.calculate_score(metrics)
-    
+
     print(f"✅ 质量评分: {score.overall_score:.1f}/100 [{score.grade}]")
     print(f"   - 复杂度评分: {score.complexity_score:.1f}/100")
     print(f"   - 可维护性评分: {score.maintainability_score:.1f}/100")
     print(f"   - 可靠性评分: {score.reliability_score:.1f}/100")
     print(f"   - 安全性评分: {score.security_score:.1f}/100")
-    
+
     if score.recommendations:
-        print(f"\n   建议:")
+        print("\n   建议:")
         for rec in score.recommendations[:3]:
             print(f"   - {rec}")
-    
+
     print()
 
 
@@ -96,7 +95,7 @@ async def test_analysis_integrator():
     print("=" * 60)
     print("测试 3: 分析集成器")
     print("=" * 60)
-    
+
     # 创建测试统一分析结果
     unified_analysis = {
         "project_path": "/test/project",
@@ -124,32 +123,32 @@ async def test_analysis_integrator():
         "maintainability_index": 80,
         "technical_debt": 0.2
     }
-    
+
     integrator = AnalysisIntegrator("/test/project")
-    
+
     # 测试相似性分析
     similarity = await integrator._analyze_similarity(unified_analysis)
     print(f"✅ 相似性分析: {similarity.get('total_blocks', 0)} 个代码块")
-    
+
     # 测试质量分析
     quality = await integrator._analyze_quality(unified_analysis)
     print(f"✅ 质量分析: {quality.get('overall_score', 0):.1f}/100 [{quality.get('grade', 'F')}]")
-    
+
     print()
 
 
 if __name__ == "__main__":
     import asyncio
-    
+
     try:
         test_similarity_detector()
         test_quality_scorer()
         asyncio.run(test_analysis_integrator())
-        
+
         print("=" * 60)
         print("🎉 所有测试通过！")
         print("=" * 60)
-    
+
     except Exception as e:
         print(f"❌ 测试失败: {e}")
         import traceback

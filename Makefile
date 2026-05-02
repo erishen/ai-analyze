@@ -107,6 +107,12 @@ test:
 	@echo -e "$(GREEN)运行测试...$(NC)"
 	@$(PYTHON) -m pytest $(TESTS_DIR)/ -v
 
+## coverage: 运行测试并生成覆盖率报告
+coverage:
+	@echo -e "$(GREEN)运行测试覆盖率分析...$(NC)"
+	@$(PYTHON) -m pytest $(TESTS_DIR)/ -v --cov=src --cov-report=term-missing --cov-report=html:.coverage-report
+	@echo -e "$(GREEN)✓ 覆盖率报告已生成 (.coverage-report/)$(NC)"
+
 ## lint: 代码检查
 lint:
 	@echo -e "$(GREEN)运行代码检查...$(NC)"

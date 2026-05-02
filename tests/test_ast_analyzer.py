@@ -7,10 +7,12 @@ import sys
 import tempfile
 from pathlib import Path
 
-# 添加 src 到路径
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
+# 添加项目根目录到路径，使用包导入
+_project_root = str(Path(__file__).parent.parent)
+if _project_root not in sys.path:
+    sys.path.insert(0, _project_root)
 
-from ast_analyzer import (
+from src.ast_analyzer import (  # noqa: E402
     PythonASTAnalyzer,
     JavaScriptASTAnalyzer,
     ASTAnalyzerFactory,
@@ -35,8 +37,9 @@ def test_python_analyzer():
     analyzer = PythonASTAnalyzer()
 
     # 创建临时 Python 文件
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
-        f.write("""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
+        f.write(
+            """
 def simple_function(x, y):
     return x + y
 
@@ -55,16 +58,17 @@ def complex_function(a, b, c):
 class MyClass:
     def __init__(self):
         self.value = 0
-    
+
     def method1(self):
         return self.value
-    
+
     def method2(self):
         for i in range(10):
             for j in range(10):
                 self.value += i * j
         return self.value
-""")
+"""
+        )
         temp_file = f.name
 
     try:
@@ -100,8 +104,9 @@ def test_javascript_analyzer():
     analyzer = JavaScriptASTAnalyzer()
 
     # 创建临时 JavaScript 文件
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.js', delete=False) as f:
-        f.write("""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".js", delete=False) as f:
+        f.write(
+            """
 function simpleFunction(x, y) {
     return x + y;
 }
@@ -114,14 +119,15 @@ class MyClass {
     constructor() {
         this.value = 0;
     }
-    
+
     method1() {
         return this.value;
     }
 }
 
 const arrowFunction = (a, b) => a + b;
-""")
+"""
+        )
         temp_file = f.name
 
     try:
@@ -185,11 +191,15 @@ def test_code_smell_detection():
     analyzer = PythonASTAnalyzer()
 
     # 长方法代码
-    long_method_code = """
+    long_method_code = (
+        """
 def long_function():
-    """ + "\n    ".join([f"x{i} = {i}" for i in range(60)]) + """
+    """
+        + "\n    ".join([f"x{i} = {i}" for i in range(60)])
+        + """
     return x59
 """
+    )
 
     smells = analyzer.detect_code_smells(long_method_code, "test.py")
     smell_names = [s.name for s in smells]
@@ -221,6 +231,7 @@ def run_all_tests():
     except Exception as e:
         print(f"\n❌ 测试出错: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 

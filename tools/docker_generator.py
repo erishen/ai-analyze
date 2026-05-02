@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Docker 配置生成器 - 基于规则的智能生成"""
 
-import os
 import json
 import re
 from pathlib import Path
@@ -10,7 +9,7 @@ from typing import Dict, List, Any, Optional, Tuple
 
 class DockerGenerator:
     """Docker 配置生成器 - 基于项目文件智能检测配置"""
-    
+
     # 项目类型到基础镜像的映射
     BASE_IMAGES = {
         'nextjs': 'node:20-alpine',
@@ -29,7 +28,7 @@ class DockerGenerator:
         'rust': 'rust:1.75-alpine',
         'java': 'eclipse-temurin:21-jre-alpine',
     }
-    
+
     # 项目类型到默认端口的映射
     DEFAULT_PORTS = {
         'nextjs': 3000,
@@ -47,13 +46,13 @@ class DockerGenerator:
         'rust': 8080,
         'java': 8080,
     }
-    
+
     def __init__(self, project_path: str):
         self.project_path = Path(project_path)
         self.generated_files = []
         self._package_json_cache: Optional[Dict] = None
         self._env_cache: Optional[Dict[str, str]] = None
-    
+
     def has_docker_config(self) -> Tuple[bool, List[str]]:
         """检查是否已有 Docker 配置"""
         docker_files = [
@@ -62,36 +61,36 @@ class DockerGenerator:
             'docker-compose.yaml',
             '.dockerignore'
         ]
-        
+
         existing_files = []
         for file in docker_files:
             if (self.project_path / file).exists():
                 existing_files.append(file)
-        
+
         return len(existing_files) > 0, existing_files
-    
+
     # ==================== 配置检测方法 ====================
-    
+
     def _load_package_json(self) -> Optional[Dict]:
         """加载并缓存 package.json"""
         if self._package_json_cache is not None:
             return self._package_json_cache
-        
+
         package_json = self.project_path / 'package.json'
         if package_json.exists():
             try:
                 with open(package_json, 'r') as f:
                     self._package_json_cache = json.load(f)
                 return self._package_json_cache
-            except:
+            except Exception:
                 pass
         return None
-    
+
     def _load_env_file(self, filename: str = '.env') -> Dict[str, str]:
         """加载环境变量文件"""
         if self._env_cache is None:
             self._env_cache = {}
-        
+
         env_file = self.project_path / filename
         if env_file.exists():
             try:
@@ -103,13 +102,13 @@ class DockerGenerator:
                             # 移除引号
                             value = value.strip().strip('"').strip("'")
                             self._env_cache[key.strip()] = value
-            except:
+            except Exception:
                 pass
         return self._env_cache
-    
+
     def detect_port(self) -> int:
         """从项目配置中检测端口
-        
+
         优先级：
         1. .env 文件中的 PORT
         2. package.json scripts 中的端口
@@ -120,18 +119,18 @@ class DockerGenerator:
         if 'PORT' in env_vars:
             try:
                 return int(env_vars['PORT'])
-            except:
+            except Exception:
                 pass
-        
+
         # 尝试其他环境变量文件
         for env_file in ['.env.local', '.env.production', '.env.development']:
             env_vars = self._load_env_file(env_file)
             if 'PORT' in env_vars:
                 try:
                     return int(env_vars['PORT'])
-                except:
+                except Exception:
                     pass
-        
+
         # 优先级2: 从 package.json scripts 解析端口
         pkg = self._load_package_json()
         if pkg:
@@ -146,23 +145,23 @@ class DockerGenerator:
                     port_match = re.search(r'-p\s+(\d+)', script)
                     if port_match:
                         return int(port_match.group(1))
-        
+
         # 优先级3: 根据项目类型返回默认端口
         project_type = self.detect_project_type({})
         return self.DEFAULT_PORTS.get(project_type, 3000)
-    
+
     def detect_base_image(self, project_type: str) -> str:
         """根据项目类型和配置选择最优基础镜像"""
         pkg = self._load_package_json()
-        
+
         # 检测是否使用 Bun
         if pkg and 'bun' in pkg.get('packageManager', '').lower():
             return self.BASE_IMAGES.get(f'{project_type}-bun', self.BASE_IMAGES.get(project_type, 'node:20-alpine'))
-        
+
         # 检测 Bun 锁文件
         if (self.project_path / 'bun.lock').exists() or (self.project_path / 'bun.lockb').exists():
             return self.BASE_IMAGES.get(f'{project_type}-bun', self.BASE_IMAGES.get(project_type, 'node:20-alpine'))
-        
+
         # 检测 Python 版本
         if project_type in ('fastapi', 'python'):
             pyproject = self.project_path / 'pyproject.toml'
@@ -173,9 +172,9 @@ class DockerGenerator:
                     if version_match:
                         major, minor = version_match.groups()
                         return f'python:{major}.{minor}-slim'
-                except:
+                except Exception:
                     pass
-        
+
         # 检测 Node.js 版本要求
         if project_type in ('nextjs', 'react', 'vue', 'angular', 'express', 'nuxt', 'node'):
             if pkg:
@@ -187,25 +186,25 @@ class DockerGenerator:
                     if version_match:
                         major = version_match.group(1)
                         return f'node:{major}-alpine'
-        
+
         return self.BASE_IMAGES.get(project_type, 'node:20-alpine')
-    
+
     def detect_project_type(self, analysis_data: Dict[str, Any]) -> str:
         """根据项目文件检测项目类型"""
         languages = analysis_data.get('languages', {})
         detected_type = 'unknown'
-        
+
         # JavaScript/TypeScript 项目检测
         package_json = self.project_path / 'package.json'
         if package_json.exists():
             try:
                 with open(package_json, 'r') as f:
                     pkg_data = json.load(f)
-                
+
                 deps = str(pkg_data.get('dependencies', {}))
                 dev_deps = str(pkg_data.get('devDependencies', {}))
                 all_deps = deps + dev_deps
-                
+
                 # Next.js 检测
                 if 'next' in deps or '"next"' in deps:
                     detected_type = 'nextjs'
@@ -226,13 +225,13 @@ class DockerGenerator:
                     detected_type = 'express'
                 else:
                     detected_type = 'node'
-            except:
+            except Exception:
                 detected_type = 'node'
-        
+
         # Python 项目检测
         elif 'python' in languages or (self.project_path / 'requirements.txt').exists() or (self.project_path / 'pyproject.toml').exists():
             detected_type = 'python'
-            
+
             # FastAPI 检测
             requirements_txt = self.project_path / 'requirements.txt'
             if requirements_txt.exists():
@@ -240,9 +239,9 @@ class DockerGenerator:
                     req_content = requirements_txt.read_text().lower()
                     if 'fastapi' in req_content:
                         detected_type = 'fastapi'
-                except:
+                except Exception:
                     pass
-            
+
             # pyproject.toml 检测
             pyproject = self.project_path / 'pyproject.toml'
             if pyproject.exists():
@@ -250,9 +249,9 @@ class DockerGenerator:
                     content = pyproject.read_text().lower()
                     if 'fastapi' in content:
                         detected_type = 'fastapi'
-                except:
+                except Exception:
                     pass
-        
+
         # Go 项目检测
         elif 'go' in languages or (self.project_path / 'go.mod').exists():
             go_mod = self.project_path / 'go.mod'
@@ -263,36 +262,36 @@ class DockerGenerator:
                         detected_type = 'gin'
                     else:
                         detected_type = 'go'
-                except:
+                except Exception:
                     detected_type = 'go'
-        
+
         # Rust 项目检测
         elif 'rust' in languages or (self.project_path / 'Cargo.toml').exists():
             detected_type = 'rust'
-        
+
         # Java 项目检测
         elif 'java' in languages or (self.project_path / 'pom.xml').exists() or (self.project_path / 'build.gradle').exists():
             detected_type = 'java'
-        
+
         # 静态网站检测
         if detected_type == 'unknown':
             html_files = list(self.project_path.glob('*.html'))
             if html_files:
                 detected_type = 'static'
-        
+
         return detected_type
-    
+
     # ==================== Dockerfile 生成方法 ====================
-    
+
     def generate_dockerfile(self, project_type: str, port: Optional[int] = None, base_image: Optional[str] = None) -> str:
         """生成 Dockerfile"""
-        
+
         # 自动检测配置
         if port is None:
             port = self.detect_port()
         if base_image is None:
             base_image = self.detect_base_image(project_type)
-        
+
         # 检测包管理器和锁文件
         package_json = self.project_path / 'package.json'
         has_bun = False
@@ -309,7 +308,7 @@ class DockerGenerator:
                     has_bun = True
                 has_package_lock = (self.project_path / 'bun.lock').exists() or (self.project_path / 'bun.lockb').exists()
 
-            except:
+            except Exception:
                 pass
 
         # 如果不是 Bun，检测 npm/pnpm 锁文件
@@ -326,7 +325,7 @@ class DockerGenerator:
                 try:
                     config_content = next_config_file.read_text()
                     is_static_export = bool(re.search(r'output\s*:\s*["\']export["\']', config_content))
-                except:
+                except Exception:
                     pass
 
         # 根据包管理器设置安装命令
@@ -341,13 +340,13 @@ class DockerGenerator:
 
         # 生成模板
         template = self._get_dockerfile_template(project_type, has_bun, is_static_export, port, base_image, copy_cmd, install_cmd)
-        
+
         return template
-    
-    def _get_dockerfile_template(self, project_type: str, has_bun: bool, is_static_export: bool, 
+
+    def _get_dockerfile_template(self, project_type: str, has_bun: bool, is_static_export: bool,
                                   port: int, base_image: str, copy_cmd: str, install_cmd: str) -> str:
         """获取 Dockerfile 模板"""
-        
+
         if project_type == 'nextjs':
             return self._get_nextjs_template(has_bun, is_static_export, port, base_image, copy_cmd, install_cmd)
         elif project_type == 'static':
@@ -364,14 +363,14 @@ class DockerGenerator:
             return self._get_java_template(port)
         else:
             return self._get_node_template(port, base_image, copy_cmd, install_cmd)
-    
-    def _get_nextjs_template(self, has_bun: bool, is_static_export: bool, 
+
+    def _get_nextjs_template(self, has_bun: bool, is_static_export: bool,
                               port: int, base_image: str, copy_cmd: str, install_cmd: str) -> str:
         """获取 Next.js Dockerfile 模板"""
-        
+
         if has_bun:
             if is_static_export:
-                return f"""# Next.js 生产环境镜像（静态导出 - Bun）
+                return """# Next.js 生产环境镜像（静态导出 - Bun）
 FROM oven/bun:1-alpine AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
@@ -403,7 +402,7 @@ EXPOSE {port}
 CMD ["nginx", "-g", "daemon off;"]
 """
             else:
-                return f"""# Next.js 生产环境镜像（Bun）
+                return """# Next.js 生产环境镜像（Bun）
 FROM oven/bun:1-alpine AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
@@ -443,9 +442,9 @@ CMD ["bun", "run", "server.js"]
 """
         else:
             node_version = base_image.split(':')[1].split('-')[0] if ':' in base_image else '20'
-            
+
             if is_static_export:
-                return f"""# Next.js 生产环境镜像（静态导出）
+                return """# Next.js 生产环境镜像（静态导出）
 FROM node:{node_version}-alpine AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
@@ -477,7 +476,7 @@ EXPOSE {port}
 CMD ["nginx", "-g", "daemon off;"]
 """
             else:
-                return f"""# Next.js 生产环境镜像
+                return """# Next.js 生产环境镜像
 FROM node:{node_version}-alpine AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
@@ -515,10 +514,10 @@ EXPOSE {port}
 
 CMD ["node", "server.js"]
 """
-    
+
     def _get_static_template(self, port: int, base_image: str, install_cmd: str) -> str:
         """获取静态网站 Dockerfile 模板"""
-        return f"""# 静态网站镜像
+        return """# 静态网站镜像
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY . .
@@ -530,11 +529,11 @@ COPY nginx.conf /etc/nginx/nginx.conf 2>/dev/null || true
 EXPOSE {port}
 CMD ["nginx", "-g", "daemon off;"]
 """
-    
+
     def _get_fastapi_template(self, port: int, base_image: str) -> str:
         """获取 FastAPI Dockerfile 模板"""
         python_version = base_image.split(':')[1].split('-')[0] if ':' in base_image else '3.12'
-        return f"""# FastAPI 生产环境
+        return """# FastAPI 生产环境
 FROM python:{python_version}-slim AS builder
 WORKDIR /app
 COPY requirements.txt .
@@ -547,11 +546,11 @@ COPY . .
 EXPOSE {port}
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "{port}"]
 """
-    
+
     def _get_python_template(self, port: int, base_image: str) -> str:
         """获取 Python Dockerfile 模板"""
         python_version = base_image.split(':')[1].split('-')[0] if ':' in base_image else '3.12'
-        return f"""# Python 应用
+        return """# Python 应用
 FROM python:{python_version}-slim AS builder
 WORKDIR /app
 COPY requirements.txt .
@@ -564,11 +563,11 @@ COPY . .
 EXPOSE {port}
 CMD ["python", "app.py"]
 """
-    
+
     def _get_go_template(self, port: int, base_image: str) -> str:
         """获取 Go Dockerfile 模板"""
         go_version = base_image.split(':')[1].split('-')[0] if ':' in base_image else '1.22'
-        return f"""# Go 应用
+        return """# Go 应用
 FROM golang:{go_version}-alpine AS builder
 WORKDIR /app
 COPY go.mod go.sum ./
@@ -583,10 +582,10 @@ COPY --from=builder /app/main .
 EXPOSE {port}
 CMD ["./main"]
 """
-    
+
     def _get_rust_template(self, port: int) -> str:
         """获取 Rust Dockerfile 模板"""
-        return f"""# Rust 应用
+        return """# Rust 应用
 FROM rust:1.75-alpine AS builder
 WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
@@ -602,10 +601,10 @@ COPY --from=builder /app/target/release/app .
 EXPOSE {port}
 CMD ["./app"]
 """
-    
+
     def _get_java_template(self, port: int) -> str:
         """获取 Java Dockerfile 模板"""
-        return f"""# Java 应用
+        return """# Java 应用
 FROM maven:3.9-eclipse-temurin-21 AS builder
 WORKDIR /app
 COPY pom.xml .
@@ -619,11 +618,11 @@ COPY --from=builder /app/target/*.jar app.jar
 EXPOSE {port}
 CMD ["java", "-jar", "app.jar"]
 """
-    
+
     def _get_node_template(self, port: int, base_image: str, copy_cmd: str, install_cmd: str) -> str:
         """获取 Node.js Dockerfile 模板"""
         node_version = base_image.split(':')[1].split('-')[0] if ':' in base_image else '20'
-        return f"""# Node.js 应用
+        return """# Node.js 应用
 FROM node:{node_version}-alpine AS builder
 WORKDIR /app
 {copy_cmd}
@@ -639,9 +638,9 @@ COPY --from=builder /app/dist ./dist
 EXPOSE {port}
 CMD ["node", "dist/index.js"]
 """
-    
+
     # ==================== 其他文件生成方法 ====================
-    
+
     def generate_dockerignore(self) -> str:
         """生成 .dockerignore"""
         return """node_modules
@@ -680,7 +679,7 @@ dist
 build
 target
 """
-    
+
     def generate_docker_build_script(self) -> str:
         """生成 docker-build.sh"""
         return """#!/bin/bash
@@ -714,10 +713,10 @@ else
     exit 1
 fi
 """
-    
+
     def generate_docker_run_script(self, port: int) -> str:
         """生成 docker-run.sh"""
-        return f"""#!/bin/bash
+        return """#!/bin/bash
 set -e
 
 # 颜色输出
@@ -803,7 +802,7 @@ echo "  View logs:    docker logs -f $CONTAINER_NAME"
 echo "  Stop:         docker stop $CONTAINER_NAME"
 echo "  Shell access: docker exec -it $CONTAINER_NAME sh"
 """
-    
+
     def generate_docker_compose_optimized(
         self,
         service_name: str,
@@ -813,18 +812,18 @@ echo "  Shell access: docker exec -it $CONTAINER_NAME sh"
     ) -> str:
         """
         生成优化的 docker-compose.yml (基于代码复杂度)
-        
+
         Args:
             service_name: 服务名称
             image: Docker 镜像
             port: 服务端口
             analysis_data: 分析数据
-        
+
         Returns:
             docker-compose.yml 内容
         """
         from smart_docker_config import SmartDockerConfig
-        
+
         smart_config = SmartDockerConfig(str(self.project_path))
         return smart_config.generate_docker_compose(
             service_name=service_name,
@@ -832,7 +831,7 @@ echo "  Shell access: docker exec -it $CONTAINER_NAME sh"
             port=port,
             analysis_data=analysis_data
         )
-    
+
     def generate_kubernetes_deployment_optimized(
         self,
         app_name: str,
@@ -843,19 +842,19 @@ echo "  Shell access: docker exec -it $CONTAINER_NAME sh"
     ) -> str:
         """
         生成优化的 Kubernetes Deployment (基于代码复杂度)
-        
+
         Args:
             app_name: 应用名称
             image: Docker 镜像
             port: 服务端口
             analysis_data: 分析数据
             replicas: 副本数
-        
+
         Returns:
             Kubernetes Deployment YAML
         """
         from smart_docker_config import SmartDockerConfig
-        
+
         smart_config = SmartDockerConfig(str(self.project_path))
         return smart_config.generate_kubernetes_deployment(
             app_name=app_name,
@@ -864,91 +863,91 @@ echo "  Shell access: docker exec -it $CONTAINER_NAME sh"
             replicas=replicas,
             analysis_data=analysis_data
         )
-    
+
     def generate_resource_report(self, analysis_data: Optional[Dict[str, Any]] = None) -> str:
         """
         生成资源配置报告
-        
+
         Args:
             analysis_data: 分析数据
-        
+
         Returns:
             格式化的报告文本
         """
         from smart_docker_config import SmartDockerConfig
-        
+
         smart_config = SmartDockerConfig(str(self.project_path))
         return smart_config.generate_resource_report(analysis_data)
-    
+
     def save_files(self, dockerfile_content: str, port: int = 3000):
         """保存所有生成的文件"""
         # 保存 Dockerfile
         dockerfile_path = self.project_path / 'Dockerfile'
         dockerfile_path.write_text(dockerfile_content)
         self.generated_files.append('Dockerfile')
-        
+
         # 保存 .dockerignore
         dockerignore_path = self.project_path / '.dockerignore'
         dockerignore_path.write_text(self.generate_dockerignore())
         self.generated_files.append('.dockerignore')
-        
+
         # 保存构建脚本
         build_script_path = self.project_path / 'docker-build.sh'
         build_script_path.write_text(self.generate_docker_build_script())
         build_script_path.chmod(0o755)
         self.generated_files.append('docker-build.sh')
-        
+
         # 保存运行脚本
         run_script_path = self.project_path / 'docker-run.sh'
         run_script_path.write_text(self.generate_docker_run_script(port))
         run_script_path.chmod(0o755)
         self.generated_files.append('docker-run.sh')
-        
+
         return self.generated_files
 
 
 def main():
     """命令行入口"""
     import argparse
-    
+
     parser = argparse.ArgumentParser(description='Docker 配置生成器（基于规则）')
     parser.add_argument('project_path', help='项目路径')
     parser.add_argument('--analysis', help='分析报告路径（可选）')
     parser.add_argument('--force', action='store_true', help='强制覆盖')
-    
+
     args = parser.parse_args()
-    
+
     project_path = Path(args.project_path)
     if not project_path.exists():
         print(f"❌ 项目路径不存在: {project_path}")
         return 1
-    
+
     generator = DockerGenerator(str(project_path))
-    
+
     # 检查是否已有配置
     has_config, existing_files = generator.has_docker_config()
     if has_config and not args.force:
         print(f"⚠️  项目已存在 Docker 配置: {', '.join(existing_files)}")
         print("使用 --force 参数强制覆盖")
         return 1
-    
+
     # 自动检测项目类型、端口和基础镜像
     project_type = generator.detect_project_type({})
     port = generator.detect_port()
     base_image = generator.detect_base_image(project_type)
-    
-    print(f"🔍 检测结果:")
+
+    print("🔍 检测结果:")
     print(f"   项目类型: {project_type}")
     print(f"   端口: {port}")
     print(f"   基础镜像: {base_image}")
-    
+
     # 生成 Dockerfile
     print(f"\n🐳 生成 {project_type} 项目的 Dockerfile...")
     dockerfile_content = generator.generate_dockerfile(project_type, port, base_image)
-    
+
     # 保存文件
     generated = generator.save_files(dockerfile_content, port)
-    
+
     print(f"\n✅ 生成完成: {', '.join(generated)}")
     return 0
 

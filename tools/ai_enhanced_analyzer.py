@@ -43,7 +43,7 @@ class AIEnhancedAnalyzer:
         self.cache_ttl = cache_ttl  # 默认缓存有效期 1 小时（3600 秒）
         self.cache_dir = Path(__file__).parent.parent / ".cache"
         self.cache_dir.mkdir(exist_ok=True)
-    
+
     def analyze_code_quality(self, analysis_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         AI 分析代码质量
@@ -90,7 +90,7 @@ class AIEnhancedAnalyzer:
                 "error": f"AI 分析失败: {str(e)}",
                 "raw_analysis": None
             }
-    
+
     def _extract_complexity_hotspots(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """提取代码复杂度热点"""
         hotspots = {
@@ -99,12 +99,12 @@ class AIEnhancedAnalyzer:
             "deep_nesting": [],
             "summary": ""
         }
-        
+
         # 尝试从 AST 分析结果中提取
         ast_analysis = data.get("ast_analysis", {})
         if not ast_analysis:
             return hotspots
-        
+
         # 提取复杂度最高的函数
         functions = ast_analysis.get("functions", [])
         if functions:
@@ -114,7 +114,7 @@ class AIEnhancedAnalyzer:
                 key=lambda f: f.get("complexity", {}).get("cyclomatic_complexity", 0),
                 reverse=True
             )[:5]
-            
+
             for func in sorted_functions:
                 hotspots["complex_functions"].append({
                     "name": func.get("name", "unknown"),
@@ -122,7 +122,7 @@ class AIEnhancedAnalyzer:
                     "complexity": func.get("complexity", {}),
                     "lines": func.get("lines", 0)
                 })
-        
+
         # 提取大类
         classes = ast_analysis.get("classes", [])
         if classes:
@@ -131,7 +131,7 @@ class AIEnhancedAnalyzer:
                 key=lambda c: c.get("lines", 0),
                 reverse=True
             )[:5]
-            
+
             for cls in sorted_classes:
                 hotspots["large_classes"].append({
                     "name": cls.get("name", "unknown"),
@@ -139,13 +139,13 @@ class AIEnhancedAnalyzer:
                     "lines": cls.get("lines", 0),
                     "methods": len(cls.get("methods", []))
                 })
-        
+
         # 提取深层嵌套
         code_smells = ast_analysis.get("code_smells", [])
         if code_smells:
             deep_nesting = [s for s in code_smells if "Deep Nesting" in s.get("name", "")][:3]
             hotspots["deep_nesting"] = deep_nesting
-        
+
         # 生成摘要
         summary_parts = []
         if hotspots["complex_functions"]:
@@ -154,29 +154,29 @@ class AIEnhancedAnalyzer:
             summary_parts.append(f"发现 {len(hotspots['large_classes'])} 个大类")
         if hotspots["deep_nesting"]:
             summary_parts.append(f"发现 {len(hotspots['deep_nesting'])} 处深层嵌套")
-        
+
         hotspots["summary"] = "；".join(summary_parts) if summary_parts else "代码复杂度正常"
-        
+
         return hotspots
-    
+
     def _extract_code_smells(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
         """提取代码坏味道"""
         smells = []
-        
+
         # 尝试从 AST 分析结果中提取
         ast_analysis = data.get("ast_analysis", {})
         if not ast_analysis:
             return smells
-        
+
         code_smells = ast_analysis.get("code_smells", [])
-        
+
         # 按严重程度排序
         severity_order = {"high": 0, "medium": 1, "low": 2}
         sorted_smells = sorted(
             code_smells,
             key=lambda s: severity_order.get(s.get("severity", "low"), 3)
         )[:10]  # 取前10个
-        
+
         for smell in sorted_smells:
             smells.append({
                 "name": smell.get("name", "unknown"),
@@ -185,9 +185,9 @@ class AIEnhancedAnalyzer:
                 "description": smell.get("description", ""),
                 "suggestion": smell.get("suggestion", "")
             })
-        
+
         return smells
-    
+
     def _build_dependency_graph(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """构建依赖图"""
         graph = {
@@ -196,12 +196,12 @@ class AIEnhancedAnalyzer:
             "external_dependencies": [],
             "summary": ""
         }
-        
+
         # 尝试从 AST 分析结果中提取
         ast_analysis = data.get("ast_analysis", {})
         if not ast_analysis:
             return graph
-        
+
         # 提取导入信息
         imports = ast_analysis.get("imports", [])
         if imports:
@@ -209,34 +209,34 @@ class AIEnhancedAnalyzer:
             import_counts = {}
             for imp in imports[:20]:  # 取前20个
                 import_counts[imp] = import_counts.get(imp, 0) + 1
-            
+
             graph["imports"] = [
                 {"module": mod, "count": count}
                 for mod, count in sorted(import_counts.items(), key=lambda x: x[1], reverse=True)
             ]
-        
+
         # 生成摘要
         graph["summary"] = f"检测到 {len(imports)} 个导入，{len(set(imports))} 个唯一模块"
-        
+
         return graph
-    
+
     def _build_enhanced_prompt(self, data: Dict[str, Any]) -> str:
         """构建增强的 AI Prompt，包含复杂度信息"""
-        
+
         # 提取复杂度热点
         hotspots = self._extract_complexity_hotspots(data)
-        
+
         # 提取代码坏味道
         smells = self._extract_code_smells(data)
-        
+
         # 构建依赖图
         deps = self._build_dependency_graph(data)
-        
+
         # 构建增强的 Prompt
         base_prompt = self._prepare_quality_analysis_prompt(data)
-        
+
         # 添加复杂度信息
-        enhanced_prompt = base_prompt + f"""
+        enhanced_prompt = base_prompt + """
 
 ## 🔴 代码复杂度分析
 
@@ -244,7 +244,7 @@ class AIEnhancedAnalyzer:
 {hotspots['summary']}
 
 """
-        
+
         if hotspots["complex_functions"]:
             enhanced_prompt += "#### 高复杂度函数\n\n"
             for func in hotspots["complex_functions"]:
@@ -252,14 +252,14 @@ class AIEnhancedAnalyzer:
                 enhanced_prompt += f"- **{func['name']}** ({func['file']})\n"
                 enhanced_prompt += f"  - 圈复杂度: {cc}\n"
                 enhanced_prompt += f"  - 代码行数: {func['lines']}\n"
-        
+
         if hotspots["large_classes"]:
             enhanced_prompt += "\n#### 大类\n\n"
             for cls in hotspots["large_classes"]:
                 enhanced_prompt += f"- **{cls['name']}** ({cls['file']})\n"
                 enhanced_prompt += f"  - 代码行数: {cls['lines']}\n"
                 enhanced_prompt += f"  - 方法数: {cls['methods']}\n"
-        
+
         # 添加代码坏味道
         if smells:
             enhanced_prompt += f"\n## ⚠️ 代码坏味道检测\n\n发现 {len(smells)} 个代码坏味道：\n\n"
@@ -268,14 +268,14 @@ class AIEnhancedAnalyzer:
                 enhanced_prompt += f"- {severity_emoji} **{smell['name']}** ({smell['severity']})\n"
                 enhanced_prompt += f"  - 位置: {smell['location']}\n"
                 enhanced_prompt += f"  - 建议: {smell['suggestion']}\n"
-        
+
         # 添加依赖信息
         if deps["imports"]:
             enhanced_prompt += f"\n## 📦 依赖分析\n\n{deps['summary']}\n\n"
             enhanced_prompt += "#### 主要依赖\n\n"
             for imp in deps["imports"][:5]:
                 enhanced_prompt += f"- {imp['module']} (引用 {imp['count']} 次)\n"
-        
+
         enhanced_prompt += """
 
 ## 🎯 分析重点
@@ -302,47 +302,47 @@ class AIEnhancedAnalyzer:
    - 是否需要优化导入结构？
 
 请提供具体、可操作的改进建议。"""
-        
+
         return enhanced_prompt
-    
+
     def _prepare_quality_analysis_prompt(self, data: Dict[str, Any]) -> str:
         """准备代码质量分析的提示词"""
-        
+
         # 提取关键信息
         project_path = data.get("project_path", "")
         languages = data.get("languages", {})
         dir_stats = data.get("directory_structure", {})
         symbols = data.get("symbols_overview", [])
-        
+
         # 构建文件结构摘要
         file_summary = []
         total_files = sum(languages.values())
-        
+
         for lang, count in languages.items():
             percentage = (count / total_files * 100) if total_files > 0 else 0
             file_summary.append(f"- {lang}: {count} 个文件 ({percentage:.1f}%)")
-        
+
         # 构建目录结构摘要
         dir_summary = []
         if dir_stats:
             dir_summary.append(f"- 总目录数: {len(dir_stats)}")
-            dir_summary.append(f"- 各目录文件分布:")
+            dir_summary.append("- 各目录文件分布:")
             # 按文件数排序，显示前10个
             sorted_dirs = sorted(dir_stats.items(), key=lambda x: x[1], reverse=True)[:10]
             for dir_path, file_count in sorted_dirs:
                 dir_summary.append(f"  - {dir_path}: {file_count} 个文件")
-        
+
         # 构建符号摘要
         symbol_summary = []
         total_symbols = len(symbols)
         successful_symbols = 0
         failed_symbols = 0
-        
+
         if total_symbols > 0:
             # 分析符号解析结果
             symbol_types = {}
             failed_files = []
-            
+
             for symbol in symbols:
                 if "error" in symbol:
                     failed_symbols += 1
@@ -351,13 +351,13 @@ class AIEnhancedAnalyzer:
                     successful_symbols += 1
                     symbol_type = symbol.get("type", "unknown")
                     symbol_types[symbol_type] = symbol_types.get(symbol_type, 0) + 1
-            
+
             # 显示符号类型统计
             if symbol_types:
-                symbol_summary.append(f"- 成功解析的符号类型:")
+                symbol_summary.append("- 成功解析的符号类型:")
                 for sym_type, count in symbol_types.items():
                     symbol_summary.append(f"  - {sym_type}: {count} 个")
-            
+
             # 显示失败的文件数（前5个）
             if failed_files:
                 symbol_summary.append(f"- 解析失败的文件: {len(failed_files)} 个")
@@ -365,11 +365,11 @@ class AIEnhancedAnalyzer:
                     symbol_summary.append(f"  - {failed_file}")
                 if len(failed_files) > 5:
                     symbol_summary.append(f"  - ... 还有 {len(failed_files) - 5} 个")
-        
+
         # 统计成功解析的符号比例
         symbol_success_rate = (successful_symbols / total_symbols * 100) if total_symbols > 0 else 0
-        
-        prompt = f"""请对以下项目进行深入的代码质量分析和架构评估：
+
+        prompt = """请对以下项目进行深入的代码质量分析和架构评估：
 
 ## 项目基本信息
 - **项目路径**: {project_path}
@@ -416,9 +416,9 @@ class AIEnhancedAnalyzer:
 **注意**: 代码符号解析成功率较低（{symbol_success_rate:.1f}%），无法深入分析具体代码实现。建议检查 Serena 配置或手动审查关键代码文件。
 
 请提供详细、专业且可操作的分析结果。"""
-        
+
         return prompt
-    
+
     def _parse_ai_analysis(self, analysis_text: str) -> Dict[str, Any]:
         """解析 AI 分析结果"""
         # 这里可以根据 AI 返回的格式进行解析
@@ -429,7 +429,7 @@ class AIEnhancedAnalyzer:
             "key_findings": self._extract_key_findings(analysis_text),
             "recommendations": self._extract_recommendations(analysis_text)
         }
-    
+
     def _extract_quality_score(self, text: str) -> Optional[int]:
         """从 AI 分析中提取质量评分"""
         import re
@@ -437,14 +437,14 @@ class AIEnhancedAnalyzer:
         if match:
             return int(match.group(1))
         return None
-    
+
     def _extract_key_findings(self, text: str) -> List[str]:
         """提取关键发现"""
         # 简单的提取逻辑，可以根据实际输出格式调整
         lines = text.split('\n')
         findings = []
         in_findings = False
-        
+
         for line in lines:
             if '潜在问题' in line or '关键发现' in line:
                 in_findings = True
@@ -452,15 +452,15 @@ class AIEnhancedAnalyzer:
                 findings.append(line.strip())
             elif in_findings and line.strip() == '':
                 break
-        
+
         return findings
-    
+
     def _extract_recommendations(self, text: str) -> List[str]:
         """提取改进建议"""
         lines = text.split('\n')
         recommendations = []
         in_recs = False
-        
+
         for line in lines:
             if '改进建议' in line or '建议' in line:
                 in_recs = True
@@ -468,9 +468,9 @@ class AIEnhancedAnalyzer:
                 recommendations.append(line.strip())
             elif in_recs and line.strip() == '' and recommendations:
                 break
-        
+
         return recommendations
-    
+
     def enhance_report(self, serena_report_path: str, output_path: Optional[str] = None, replace_original: bool = False) -> str:
         """
         增强 Serena 分析报告，添加 AI 分析结果
@@ -486,13 +486,13 @@ class AIEnhancedAnalyzer:
         # 读取 Serena 分析报告
         with open(serena_report_path, 'r', encoding='utf-8') as f:
             analysis_data = json.load(f)
-        
+
         # 获取项目路径
         project_path = analysis_data.get('project_path', '')
-        
+
         # 预定义变量，避免 f-string 中的反斜杠问题（必须在所有 f-string 之前定义）
         project_name_simple = Path(project_path).name
-        
+
         # 检查 Docker 配置
         print("🐳 检查 Docker 配置...")
         docker_generator = DockerGenerator(project_path)
@@ -537,7 +537,7 @@ class AIEnhancedAnalyzer:
         # 简化 Docker 配置部分，只显示当前状态和 AI 建议，不生成配置
         if has_docker:
             print(f"✅ 项目已存在 Docker 配置: {', '.join(existing_files)}")
-            docker_section = f"""## 🐳 Docker 配置
+            docker_section = """## 🐳 Docker 配置
 
 项目已包含 Docker 配置文件：{', '.join(existing_files)}
 
@@ -577,7 +577,7 @@ docker-compose up -d
 
         # 添加 AI Docker 策略建议
         if "error" not in ai_docker_strategy and ai_docker_recommendations:
-            ai_docker_suggestions = f"""
+            ai_docker_suggestions = """
 基于 AI 分析，以下 Docker 配置建议：
 
 {chr(10).join(f'- {rec}' for rec in ai_docker_recommendations[:8])}
@@ -591,7 +591,7 @@ docker-compose up -d
 
         # 如果 AI Docker 策略分析成功，打印总结
         if "error" not in ai_docker_strategy:
-            print(f"✅ AI Docker 策略分析完成")
+            print("✅ AI Docker 策略分析完成")
             print(f"   - 推荐基础镜像: {ai_docker_strategy.get('base_image', '默认')}")
             print(f"   - 推荐端口: {ai_docker_strategy.get('recommended_port', '默认')}")
             print(f"   - 建议: {len(ai_docker_strategy.get('recommendations', []))} 条")
@@ -607,7 +607,7 @@ docker-compose up -d
         md_path = serena_report_path.replace('.json', '.md')
         with open(md_path, 'r', encoding='utf-8') as f:
             original_md = f.read()
-        
+
         # 生成 AI Docker 策略 Markdown
         docker_strategy_md = ""
         if "error" not in ai_docker_strategy:
@@ -619,7 +619,7 @@ docker-compose up -d
             framework_upgrade_md = self._generate_framework_upgrade_markdown(ai_framework_upgrade)
 
         # 在原始报告后添加 AI 分析和 Docker 配置
-        enhanced_report = f"""{original_md}
+        enhanced_report = """{original_md}
 
 {docker_section}
 
@@ -633,7 +633,7 @@ docker-compose up -d
 
 *报告由 Serena + AI 增强分析器生成*
 """
-        
+
         # 保存增强后的报告
         if output_path:
             output_file = Path(output_path)
@@ -650,7 +650,7 @@ docker-compose up -d
         print(f"✅ AI 增强报告已保存至: {output_file}")
 
         return enhanced_report
-    
+
     def analyze_docker_strategy(self, analysis_data: Dict[str, Any], ai_analysis: str) -> Dict[str, Any]:
         """
         AI 分析 Docker 部署策略
@@ -773,7 +773,7 @@ docker-compose up -d
                 python_matches = re.findall(r'python\s*=\s*["\']([^"\']+)["\']', content)
                 python_version = python_matches[0] if python_matches else "未指定"
                 dependencies_info["python_version"] = python_version
-            except:
+            except Exception:
                 pass
 
         # Node.js 项目
@@ -790,7 +790,7 @@ docker-compose up -d
                             key_deps[dep] = package_data["dependencies"][dep]
 
                     dependencies_info["key_dependencies"] = key_deps
-            except:
+            except Exception:
                 pass
 
         # Go 项目
@@ -800,10 +800,10 @@ docker-compose up -d
                 import re
                 go_version = re.search(r'go\s+([0-9.]+)', content)
                 dependencies_info["go_version"] = go_version.group(1) if go_version else "未指定"
-            except:
+            except Exception:
                 pass
 
-        prompt = f"""请基于以下项目分析数据，给出框架升级建议：
+        prompt = """请基于以下项目分析数据，给出框架升级建议：
 
 ## 📁 项目基本信息
 - **项目路径**: {project_path}
@@ -942,7 +942,7 @@ docker-compose up -d
         """生成 AI 框架升级建议的 Markdown 内容"""
 
         if "error" in framework_upgrade:
-            return f"""## 🔄 AI 框架升级建议
+            return """## 🔄 AI 框架升级建议
 
 ⚠️ {framework_upgrade['error']}
 
@@ -951,7 +951,7 @@ docker-compose up -d
 无法提供框架升级建议，请检查代码质量分析结果。
 """
 
-        md = f"""## 🔄 AI 框架升级建议
+        md = """## 🔄 AI 框架升级建议
 
 基于 AI 深度分析，为该项目提供以下框架升级建议：
 
@@ -993,7 +993,7 @@ docker-compose up -d
             for i, step in enumerate(upgrade_paths, 1):
                 md += f"{i}. {step}\n"
 
-        md += f"""
+        md += """
 ### 🔧 技术细节
 
 <details>
@@ -1025,14 +1025,14 @@ docker-compose up -d
 
         return md
 
-    
+
     def _prepare_docker_strategy_prompt(self, analysis_data: Dict[str, Any], ai_analysis: str) -> str:
         """准备 Docker 策略分析的提示词"""
-        
+
         project_path = analysis_data.get("project_path", "")
         languages = analysis_data.get("languages", {})
         dir_stats = analysis_data.get("directory_structure", {})
-        
+
         # 检查关键文件
         project_root = Path(project_path)
         key_files = {
@@ -1045,7 +1045,7 @@ docker-compose up -d
             "Dockerfile": (project_root / "Dockerfile").exists(),
             "docker-compose.yml": (project_root / "docker-compose.yml").exists()
         }
-        
+
         # 检查可能的数据库
         db_indicators = []
         if (project_root / ".env").exists():
@@ -1058,7 +1058,7 @@ docker-compose up -d
                 db_indicators.append("MongoDB")
             if "redis" in env_content:
                 db_indicators.append("Redis")
-        
+
         # 检查依赖文件内容
         dependencies = []
         if (project_root / "package.json").exists():
@@ -1067,16 +1067,16 @@ docker-compose up -d
                     package_data = json.load(f)
                     deps = {**package_data.get('dependencies', {}), **package_data.get('devDependencies', {})}
                     dependencies.extend([f"{name}:{version}" for name, version in list(deps.items())[:10]])
-            except:
+            except Exception:
                 pass
         elif (project_root / "requirements.txt").exists():
             try:
                 content = (project_root / "requirements.txt").read_text()
                 dependencies.extend([line.strip() for line in content.split('\n')[:10] if line.strip() and not line.startswith('#')])
-            except:
+            except Exception:
                 pass
-        
-        prompt = f"""请基于以下项目分析数据，为该项目设计最佳的 Docker 部署策略和容器化方案：
+
+        prompt = """请基于以下项目分析数据，为该项目设计最佳的 Docker 部署策略和容器化方案：
 
 ## 📁 项目基本信息
 - **项目路径**: {project_path}
@@ -1154,15 +1154,15 @@ docker-compose up -d
     - 除了 Docker，是否适合其他部署方式（如 serverless、PaaS 等）
 
 请提供具体、可操作、符合云原生最佳实践的建议。"""
-        
+
         return prompt
-    
+
     def _parse_docker_strategy(self, strategy_text: str, analysis_data: Dict[str, Any]) -> Dict[str, Any]:
         """解析 Docker 策略分析结果"""
-        
+
         # 提取关键信息
         import re
-        
+
         # 提取基础镜像建议（支持多种格式）
         # 优先匹配 FROM 语句
         base_image = None
@@ -1178,7 +1178,7 @@ docker-compose up -d
                 base_image = base_image_match.group(1)
                 print(f"✅ 从中文描述提取基础镜像: {base_image}")
             else:
-                print(f"⚠️  未找到基础镜像建议")
+                print("⚠️  未找到基础镜像建议")
 
         # 提取端口建议（支持多种格式）
         port = None
@@ -1194,17 +1194,17 @@ docker-compose up -d
                 port = int(port_match.group(1))
                 print(f"✅ 从中文描述提取端口: {port}")
             else:
-                print(f"⚠️  未找到端口建议")
+                print("⚠️  未找到端口建议")
 
         # 提取是否需要数据库
         needs_db = bool(re.search(r'(数据库|mysql|postgres|mongodb)', strategy_text, re.IGNORECASE))
         if needs_db:
-            print(f"✅ 检测到数据库需求")
+            print("✅ 检测到数据库需求")
 
         # 提取多阶段构建建议
         multi_stage = bool(re.search(r'(多阶段构建|multi-stage)', strategy_text, re.IGNORECASE))
         if multi_stage:
-            print(f"✅ 检测到多阶段构建建议")
+            print("✅ 检测到多阶段构建建议")
 
         # 提取镜像大小目标（支持更灵活的格式）
         # 匹配如 "目标 < 150MB"、"200-300MB"、"300MB" 等格式
@@ -1214,8 +1214,8 @@ docker-compose up -d
             target_size = size_match.group(1)
             print(f"✅ 提取镜像大小目标: {target_size}")
         else:
-            print(f"⚠️  未找到镜像大小目标")
-        
+            print("⚠️  未找到镜像大小目标")
+
         return {
             "strategy": strategy_text,
             "base_image": base_image,
@@ -1225,14 +1225,14 @@ docker-compose up -d
             "target_image_size": target_size,
             "recommendations": self._extract_docker_recommendations(strategy_text)
         }
-    
+
     def _extract_docker_recommendations(self, text: str) -> List[str]:
         """提取 Docker 相关建议"""
-        
+
         recommendations = []
         lines = text.split('\n')
         in_recs = False
-        
+
         for line in lines:
             # 检测建议部分的开始
             if any(keyword in line.lower() for keyword in ['建议', '推荐', '最佳实践', '优化']):
@@ -1245,14 +1245,14 @@ docker-compose up -d
             elif in_recs and line.strip() == '' and recommendations:
                 # 空行表示部分结束
                 break
-        
+
         return recommendations
-    
+
     def _generate_docker_strategy_markdown(self, docker_strategy: Dict[str, Any]) -> str:
         """生成 AI Docker 策略分析的 Markdown 内容"""
-        
+
         if "error" in docker_strategy:
-            return f"""## 🐳 AI Docker 部署策略
+            return """## 🐳 AI Docker 部署策略
 
 ⚠️ {docker_strategy['error']}
 
@@ -1260,8 +1260,8 @@ docker-compose up -d
 
 使用基于规则的 Docker 配置生成。
 """
-        
-        md = f"""## 🐳 AI Docker 部署策略
+
+        md = """## 🐳 AI Docker 部署策略
 
 基于 AI 深度分析，为该项目推荐以下 Docker 部署方案：
 
@@ -1276,7 +1276,7 @@ docker-compose up -d
 ### 💡 AI 优化建议
 
 """
-        
+
         recommendations = docker_strategy.get("recommendations", [])
         if recommendations:
             for i, rec in enumerate(recommendations[:8], 1):  # 显示前8条
@@ -1285,8 +1285,8 @@ docker-compose up -d
                 md += f"\n*还有 {len(recommendations) - 8} 条优化建议*\n"
         else:
             md += "AI 未提供具体优化建议，将使用默认配置。\n"
-        
-        md += f"""
+
+        md += """
 ### 🔧 技术细节
 
 <details>
@@ -1307,36 +1307,36 @@ docker-compose up -d
 ---
 
 """
-        
+
         return md
-    
+
     def _generate_ai_markdown(self, ai_results: Dict[str, Any]) -> str:
         """生成 AI 分析的 Markdown 内容"""
-        
-        md = f"""## 🤖 AI 深度代码分析
+
+        md = """## 🤖 AI 深度代码分析
 
 ### 📊 代码质量评分
 """
-        
+
         score = ai_results.get("quality_score")
         if score:
             stars = "⭐" * (score // 2) + "☆" * (5 - (score // 2))
             md += f"{stars} **{score}/10**\n\n"
-        
+
         md += f"### 📝 详细分析\n\n{ai_results.get('raw_analysis', '暂无分析结果')}\n"
-        
+
         findings = ai_results.get("key_findings", [])
         if findings:
-            md += f"\n### ⚠️ 关键发现\n\n"
+            md += "\n### ⚠️ 关键发现\n\n"
             for finding in findings:
                 md += f"{finding}\n"
-        
+
         recommendations = ai_results.get("recommendations", [])
         if recommendations:
-            md += f"\n### 💡 改进建议\n\n"
+            md += "\n### 💡 改进建议\n\n"
             for rec in recommendations:
                 md += f"{rec}\n"
-        
+
         return md
 
     def _generate_cache_key(self, project_path: str, analysis_type: str) -> str:

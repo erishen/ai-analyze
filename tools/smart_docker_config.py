@@ -4,10 +4,9 @@
 基于代码复杂度分析自动调整资源分配
 """
 
-import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any, Optional
 
 
 @dataclass
@@ -23,7 +22,7 @@ class ResourceProfile:
 
 class SmartDockerConfig:
     """智能 Docker 配置生成器"""
-    
+
     # 资源配置预设
     RESOURCE_PROFILES = {
         'minimal': ResourceProfile(
@@ -67,17 +66,17 @@ class SmartDockerConfig:
             description='超大型项目 (极高复杂度)'
         ),
     }
-    
+
     def __init__(self, project_path: str):
         self.project_path = Path(project_path)
-    
+
     def analyze_complexity(self, analysis_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         分析代码复杂度
-        
+
         Args:
             analysis_data: 来自 Serena/AST 分析的数据
-        
+
         Returns:
             复杂度分析结果
         """
@@ -91,50 +90,50 @@ class SmartDockerConfig:
             'language_distribution': {},
             'complexity_level': 'unknown'
         }
-        
+
         if not analysis_data:
             return metrics
-        
+
         # 从分析数据提取指标
         files = analysis_data.get('files', [])
         metrics['file_count'] = len(files)
-        
+
         if files:
             complexities = []
-            
+
             for file_data in files:
                 # 提取语言信息
                 language = file_data.get('language', 'unknown')
                 metrics['language_distribution'][language] = \
                     metrics['language_distribution'].get(language, 0) + 1
-                
+
                 # 提取复杂度
                 if file_data.get('overall_complexity'):
                     cc = file_data['overall_complexity'].get('cyclomatic_complexity', 0)
                     complexities.append(cc)
                     metrics['total_complexity'] += cc
                     metrics['max_complexity'] = max(metrics['max_complexity'], cc)
-                
+
                 # 提取代码坏味道
                 metrics['code_smells'] += len(file_data.get('code_smells', []))
-            
+
             # 计算平均复杂度
             if complexities:
                 metrics['avg_complexity'] = metrics['total_complexity'] / len(complexities)
-            
+
             # 提取质量分数
             summary = analysis_data.get('summary', {})
             metrics['quality_score'] = summary.get('quality_score', 100.0)
-        
+
         # 确定复杂度级别
         metrics['complexity_level'] = self._classify_complexity(metrics)
-        
+
         return metrics
-    
+
     def _classify_complexity(self, metrics: Dict[str, Any]) -> str:
         """
         根据指标分类复杂度级别
-        
+
         Returns:
             'minimal', 'small', 'medium', 'large', 'xlarge'
         """
@@ -143,10 +142,10 @@ class SmartDockerConfig:
         max_complexity = metrics['max_complexity']
         code_smells = metrics['code_smells']
         quality_score = metrics['quality_score']
-        
+
         # 计算复杂度分数 (0-100)
         complexity_score = 0
-        
+
         # 文件数量评分 (0-25)
         if file_count < 10:
             complexity_score += 5
@@ -158,7 +157,7 @@ class SmartDockerConfig:
             complexity_score += 20
         else:
             complexity_score += 25
-        
+
         # 平均复杂度评分 (0-25)
         if avg_complexity < 5:
             complexity_score += 5
@@ -170,7 +169,7 @@ class SmartDockerConfig:
             complexity_score += 20
         else:
             complexity_score += 25
-        
+
         # 最大复杂度评分 (0-25)
         if max_complexity < 10:
             complexity_score += 5
@@ -182,7 +181,7 @@ class SmartDockerConfig:
             complexity_score += 20
         else:
             complexity_score += 25
-        
+
         # 代码坏味道评分 (0-25)
         if code_smells == 0:
             complexity_score += 25
@@ -194,7 +193,7 @@ class SmartDockerConfig:
             complexity_score += 10
         else:
             complexity_score += 5
-        
+
         # 根据总分分类
         if complexity_score < 20:
             return 'minimal'
@@ -206,22 +205,22 @@ class SmartDockerConfig:
             return 'large'
         else:
             return 'xlarge'
-    
+
     def get_resource_profile(self, analysis_data: Optional[Dict[str, Any]] = None) -> ResourceProfile:
         """
         根据分析数据获取推荐的资源配置
-        
+
         Args:
             analysis_data: 来自 Serena/AST 分析的数据
-        
+
         Returns:
             推荐的资源配置
         """
         metrics = self.analyze_complexity(analysis_data)
         complexity_level = metrics['complexity_level']
-        
+
         return self.RESOURCE_PROFILES.get(complexity_level, self.RESOURCE_PROFILES['medium'])
-    
+
     def generate_docker_compose(
         self,
         service_name: str,
@@ -232,26 +231,26 @@ class SmartDockerConfig:
     ) -> str:
         """
         生成优化的 docker-compose.yml
-        
+
         Args:
             service_name: 服务名称
             image: Docker 镜像名称
             port: 服务端口
             analysis_data: 分析数据
             env_vars: 环境变量
-        
+
         Returns:
             docker-compose.yml 内容
         """
         profile = self.get_resource_profile(analysis_data)
         metrics = self.analyze_complexity(analysis_data)
-        
+
         env_section = ''
         if env_vars:
             env_lines = [f'      {k}: "{v}"' for k, v in env_vars.items()]
-            env_section = f'    environment:\n' + '\n'.join(env_lines) + '\n'
-        
-        compose_content = f'''version: '3.8'
+            env_section = '    environment:\n' + '\n'.join(env_lines) + '\n'
+
+        compose_content = '''version: '3.8'
 
 services:
   {service_name}:
@@ -270,18 +269,18 @@ services:
         reservations:
           cpus: '{profile.cpu_request}'
           memory: {profile.memory_request}
-    
+
     # 健康检查
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:{port}/"]
+      test: ["CMD", "curl", "-", "http://localhost:{port}/"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
-    
+
     # 重启策略
     restart: unless-stopped
-    
+
     # 日志配置
     logging:
       driver: "json-file"
@@ -296,7 +295,7 @@ networks:
     driver: bridge
 '''
         return compose_content
-    
+
     def generate_kubernetes_deployment(
         self,
         app_name: str,
@@ -308,7 +307,7 @@ networks:
     ) -> str:
         """
         生成优化的 Kubernetes Deployment
-        
+
         Args:
             app_name: 应用名称
             image: Docker 镜像
@@ -316,19 +315,19 @@ networks:
             replicas: 副本数
             analysis_data: 分析数据
             env_vars: 环境变量
-        
+
         Returns:
             Kubernetes Deployment YAML
         """
         profile = self.get_resource_profile(analysis_data)
         metrics = self.analyze_complexity(analysis_data)
-        
+
         env_section = ''
         if env_vars:
             env_lines = [f'        - name: {k}\n          value: "{v}"' for k, v in env_vars.items()]
-            env_section = f'          env:\n' + '\n'.join(env_lines) + '\n'
-        
-        deployment = f'''apiVersion: apps/v1
+            env_section = '          env:\n' + '\n'.join(env_lines) + '\n'
+
+        deployment = '''apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {app_name}
@@ -362,7 +361,7 @@ spec:
           requests:
             cpu: {profile.cpu_request}
             memory: {profile.memory_request}
-        
+
         # 健康检查
         livenessProbe:
           httpGet:
@@ -372,7 +371,7 @@ spec:
           periodSeconds: 10
           timeoutSeconds: 5
           failureThreshold: 3
-        
+
         readinessProbe:
           httpGet:
             path: /
@@ -381,7 +380,7 @@ spec:
           periodSeconds: 5
           timeoutSeconds: 3
           failureThreshold: 3
-        
+
         # 安全上下文
         securityContext:
           runAsNonRoot: true
@@ -409,21 +408,21 @@ spec:
     app: {app_name}
 '''
         return deployment
-    
+
     def generate_resource_report(self, analysis_data: Optional[Dict[str, Any]] = None) -> str:
         """
         生成资源配置报告
-        
+
         Args:
             analysis_data: 分析数据
-        
+
         Returns:
             格式化的报告文本
         """
         metrics = self.analyze_complexity(analysis_data)
         profile = self.get_resource_profile(analysis_data)
-        
-        report = f'''
+
+        report = '''
 ╔════════════════════════════════════════════════════════════════╗
 ║           智能 Docker 资源配置分析报告                          ║
 ╚════════════════════════════════════════════════════════════════╝
@@ -442,13 +441,13 @@ spec:
 '''
         for lang, count in sorted(metrics['language_distribution'].items(), key=lambda x: x[1], reverse=True):
             report += f'  {lang:15} {count:3} 个文件\n'
-        
-        report += f'''
+
+        report += '''
 🎯 推荐资源配置
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   配置级别:           {profile.name.upper()}
   描述:               {profile.description}
-  
+
   CPU 限制:           {profile.cpu_limit} 核
   CPU 请求:           {profile.cpu_request} 核
   内存限制:           {profile.memory_limit}
@@ -457,23 +456,23 @@ spec:
 💡 优化建议
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 '''
-        
+
         # 根据指标生成建议
         if metrics['avg_complexity'] > 20:
             report += '  ⚠️  平均复杂度较高，建议进行代码重构\n'
-        
+
         if metrics['code_smells'] > 10:
             report += '  ⚠️  代码坏味道较多，建议进行代码审查\n'
-        
+
         if metrics['quality_score'] < 70:
             report += '  ⚠️  代码质量分数较低，建议改进\n'
-        
+
         if metrics['file_count'] > 100:
             report += '  💡 文件数量较多，考虑增加副本数以提高可用性\n'
-        
+
         if metrics['complexity_level'] in ['large', 'xlarge']:
             report += '  💡 项目复杂度较高，建议使用多副本部署\n'
             report += '  💡 建议启用自动扩展 (HPA)\n'
-        
+
         report += '\n'
         return report
