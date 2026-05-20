@@ -63,3 +63,5 @@ reports/
 # 生成文件
 PERFORMANCE_REPORT.json
 ast_analysis_*.json
+ast_analysis_*.md
+ast_visualizations/

@@ -6,6 +6,8 @@
 import sys
 from pathlib import Path
 
+import pytest
+
 # 添加项目路径
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -90,6 +92,7 @@ def test_quality_scorer():
     print()
 
 
+@pytest.mark.asyncio
 async def test_analysis_integrator():
     """测试分析集成器"""
     print("=" * 60)
