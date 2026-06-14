@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # 添加 serena 到 Python 路径
-serena_path = Path(os.getenv("SERENA_DIR", "/Users/erishen/Github/serena"))
+serena_path = Path(os.getenv("SERENA_DIR", Path.home() / "serena"))
 if serena_path.exists():
     sys.path.insert(0, str(serena_path / "src"))
 

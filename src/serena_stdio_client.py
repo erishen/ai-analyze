@@ -169,7 +169,7 @@ class SerenaStdioClient:
             project_path = str(Path.cwd())
 
         # 构建 MCP 服务器启动命令
-        serena_dir = os.getenv("SERENA_DIR", "/Users/erishen/Github/serena")
+        serena_dir = os.getenv("SERENA_DIR", str(Path.home() / "serena"))
         self.server_command = [
             "uv",
             "run",
