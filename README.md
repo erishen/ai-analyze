@@ -1,399 +1,335 @@
-# 🤖 AI 增强代码分析工具
+# 🤖 AI-Powered Code Analysis Tool
 
-一套基于 **MCP (Model Context Protocol)** 和 **DeepSeek AI** 的智能代码分析工具，提供 Serena 代码结构分析、AI 深度质量评估、Docker 自动生成等全流程解决方案。
+An intelligent code analysis toolkit based on **MCP (Model Context Protocol)** and **DeepSeek AI**, providing Serena code structure analysis, AI-driven quality assessment, Docker auto-generation, and end-to-end solutions.
 
-## ✨ 核心特性
+## ✨ Key Features
 
-- 🔍 **Serena 代码结构分析**：多语言支持（20+ 语言），智能符号解析
-- 🤖 **AI 增强分析**：DeepSeek 深度评估代码质量、架构设计
-- 🐳 **Docker 自动生成**：AI 驱动，智能推荐最优容器化方案
-- 💰 **超低成本**：每次完整分析仅需 **¥0.01-0.03**
-- ⚡ **一键自动化**：Makefile 驱动，2-3 分钟完成全流程
-- 📊 **多格式报告**：Markdown + JSON 双格式输出
-- 🎯 **智能优化**：基于最佳实践的 15+ 个优化维度
+- 🔍 **Serena Code Structure Analysis** — Multi-language support (20+ languages), intelligent symbol parsing
+- 🤖 **AI-Enhanced Analysis** — DeepSeek-powered code quality & architecture evaluation
+- 🐳 **Docker Auto-Generation** — AI-driven, intelligent containerization recommendations
+- 💰 **Ultra-Low Cost** — ~¥0.01-0.03 per full analysis
+- ⚡ **One-Click Automation** — Makefile-driven, 2-3 minutes for complete workflow
+- 📊 **Multi-Format Reports** — Markdown + JSON dual output
+- 🎯 **Smart Optimization** — 15+ optimization dimensions based on best practices
 
-## 📦 项目结构
+## 📦 Project Structure
 
 ```
 .
-├── src/                           # 源代码
-│   ├── serena_client.py           # Serena MCP 客户端
-│   ├── serena_stdio_client.py     # Stdio 通信客户端
+├── src/                           # Source code
+│   ├── serena_client.py           # Serena MCP client
+│   ├── serena_stdio_client.py     # Stdio communication client
 │   ├── __init__.py
-│   └── serena_mcp_client.egg-info/  # 包元数据
-├── tools/                         # 工具脚本
-│   ├── full_analyzer.py           # 一键分析工具
-│   ├── analyze_project_multilang.py  # 多语言分析
-│   ├── docker_generator.py        # Docker 生成器
-│   ├── ai_enhanced_analyzer.py    # AI 增强分析器（含框架升级建议）
-│   ├── analyze_with_ai.py         # AI 分析封装
-│   └── clean_generated_files.py   # 清理工具
-├── examples/                      # 示例代码
-│   └── serena_example.py          # Serena 使用示例
-├── reports/                       # 分析报告输出目录
-│   ├── ai-chat_analysis_20260125.json
-│   ├── ai-chat_analysis_20260125.md
-│   └── ai-chat_analysis_20260125-ai.md
-├── tests/                         # 测试文件
+│   └── serena_mcp_client.egg-info/  # Package metadata
+├── tools/                         # Tool scripts
+│   ├── full_analyzer.py           # One-click analysis tool
+│   ├── analyze_project_multilang.py  # Multi-language analysis
+│   ├── docker_generator.py        # Docker generator
+│   ├── ai_enhanced_analyzer.py    # AI-enhanced analyzer (with framework upgrade)
+│   ├── analyze_with_ai.py         # AI analysis wrapper
+│   └── clean_generated_files.py   # Cleanup tool
+├── examples/                      # Example code
+│   └── serena_example.py          # Serena usage example
+├── reports/                       # Analysis report output
+├── tests/                         # Tests
 │   └── test_stdio_client.py
-├── docs/                          # 详细文档
-│   ├── FRAMEWORK_UPGRADE.md       # 框架升级建议功能说明
-│   └── UV_GUIDE.md                # uv 使用指南
-├── pyproject.toml                 # 项目配置
-├── uv.lock                        # 锁定依赖版本
-├── setup_uv.sh                    # uv 安装脚本
-├── Makefile                       # 便捷命令
-├── README.md                      # 本文件
-└── QUICK_START.md                 # 快速开始指南
+├── docs/                          # Documentation
+│   ├── FRAMEWORK_UPGRADE.md       # Framework upgrade guide
+│   └── UV_GUIDE.md                # uv usage guide
+├── pyproject.toml
+├── uv.lock
+├── setup_uv.sh
+├── Makefile
+├── README.md                      # This file
+└── QUICK_START.md                 # Quick start guide
 ```
 
-## 🚀 快速开始
+## 🚀 Quick Start
 
-### 前置要求
+### Prerequisites
 
-⚠️ **必须先完成以下两步**：
+⚠️ **Two steps required before use**:
 
-1. **下载 Serena MCP**
+1. **Download Serena MCP**
    ```bash
-   # 克隆 Serena 仓库
    git clone git@github.com:oraios/serena.git
    cd serena
-
-   # 创建虚拟环境
    python -m venv venv
    source venv/bin/activate  # Windows: venv\Scripts\activate
-
-   # 安装依赖
    pip install -e .
-
-   # 验证安装
    python -m serena --version
    ```
 
-2. **配置 DeepSeek API KEY**
+2. **Configure DeepSeek API Key**
    ```bash
-   # 注册 DeepSeek 账号：https://platform.deepseek.com/
-   # 获取 API Key 后，创建 .env 文件
    cp .env.example .env
-
-   # 编辑 .env 文件，添加：
+   # Edit .env:
    OPENAI_API_KEY=sk-your-deepseek-api-key-here
    OPENAI_BASE_URL=https://api.deepseek.com
    OPENAI_MODEL=deepseek-chat
    PROJECT_PATH=/path/to/your/project
    ```
 
-### 1. 安装依赖
+### 1. Install Dependencies
 
-#### 方式 1: 使用 uv（推荐，极快）
+#### Option 1: uv (recommended)
 
 ```bash
-# 一键安装（推荐）
 make uv-install
-
-# 或手动使用 uv
-uv sync                    # 同步依赖
-uv sync --extra dev         # 包含开发依赖
-uv shell                   # 进入虚拟环境
+# Or manually:
+uv sync
+uv sync --extra dev
+uv shell
 ```
 
-#### 方式 2: 使用传统方式（pip）
+#### Option 2: pip
 
 ```bash
-# 使用 Makefile
 make install
-
-# 或手动安装
+# Or:
 pip install -e .
 ```
 
-**uv vs pip 性能对比**:
-| 操作 | pip | uv | 提升 |
-|------|-----|-----|------|
-| 安装依赖 | ~30s | ~2s | 15x |
-| 依赖解析 | ~10s | ~0.2s | 50x |
-| 虚拟环境创建 | ~5s | ~0.1s | 50x |
+**uv vs pip performance**:
+| Operation | pip | uv | Improvement |
+|-----------|-----|-----|-------------|
+| Install | ~30s | ~2s | 15x |
+| Resolve | ~10s | ~0.2s | 50x |
+| Venv create | ~5s | ~0.1s | 50x |
 
-### 2. 配置环境
+### 2. Configure Environment
 
 ```bash
-# 复制环境变量示例文件
 cp .env.example .env
-
-# 编辑 .env 文件，配置以下关键变量：
-# - PROJECT_PATH: 要分析的目标项目路径
-# - OPENAI_API_KEY: DeepSeek API 密钥（用于 AI 分析）
+# Configure:
+# - PROJECT_PATH: target project path
+# - OPENAI_API_KEY: DeepSeek API key
 # - OPENAI_BASE_URL: https://api.deepseek.com
 # - OPENAI_MODEL: deepseek-chat
 ```
 
-### 3. 一键完整分析（最推荐）
+### 3. One-Click Full Analysis
 
 ```bash
-# 完整分析：Serena + AI + Docker
+# Full: Serena + AI + Docker
 make analyze-full
 
-# 只运行 Serena 分析
+# Serena only
 make analyze-full-serena
 
-# 跳过 AI 分析，运行 Serena + Docker
+# Skip AI, run Serena + Docker
 make analyze-full-skip-ai
 
-# 跳过 Docker 生成，运行 Serena + AI
+# Skip Docker, run Serena + AI
 make analyze-full-skip-docker
 
-# 强制覆盖已有 Docker 配置
+# Force overwrite existing Docker config
 make analyze-full-force
 ```
 
-### 4. 单独功能使用
+### 4. Individual Features
 
 ```bash
-# 只运行 AI 增强（已有 Serena 报告）
+# AI enhancement only (with existing Serena report)
 make analyze-ai-only REPORT=reports/your_report.json
 
-# 只生成 Docker 配置
+# Docker config only
 make docker-generate
 
-# 构建并运行 Docker
+# Build and run Docker
 make docker-build
 make docker-run
 ```
 
-## 📋 可用命令（35+）
+## 📋 Available Commands (35+)
 
-使用 `make help` 查看所有命令：
+Run `make help` to see all commands.
 
-```bash
-make help
+### 🔍 One-Click Analysis
+
+| Command | Description | AI Cost |
+|---------|-------------|---------|
+| `make analyze-full` | Full: Serena + AI + Docker | ~¥0.017 |
+| `make analyze-full-serena` | Serena only | ¥0 |
+| `make analyze-full-skip-ai` | Serena + Docker | ¥0 |
+| `make analyze-full-skip-docker` | Serena + AI | ~¥0.017 |
+| `make analyze-full-force` | Force overwrite Docker config | ~¥0.017 |
+
+### 🔍 Core Analysis
+
+| Command | Description | AI Cost |
+|---------|-------------|---------|
+| `make analyze-ai` | AI-enhanced analysis (full flow) | ~¥0.017 |
+| `make analyze-skip-ai` | Serena only | ¥0 |
+| `make analyze-ai-only` | AI enhancement on existing report | ~¥0.017 |
+| `make analyze` | Markdown report (multi-language) | ¥0 |
+| `make analyze-json` | JSON report (multi-language) | ¥0 |
+
+### 🐳 Docker Commands
+
+| Command | Description |
+|---------|-------------|
+| `make docker-check` | Check Docker config |
+| `make docker-generate` | Generate Docker config (AI) |
+| `make docker-build` | Build Docker image |
+| `make docker-run` | Run Docker container |
+| `make docker-compose-up` | Start docker-compose |
+| `make docker-compose-down` | Stop docker-compose |
+
+### 🧹 Cleanup
+
+| Command | Description |
+|---------|-------------|
+| `make clean` | Clean cache and temp files |
+| `make clean-reports` | Clean old reports |
+| `make clean-all` | Clean all generated files |
+
+### 🛠️ Development
+
+| Command | Description |
+|---------|-------------|
+| `make install` | Install dependencies |
+| `make test` | Run tests |
+| `make lint` | Lint code |
+| `make format` | Format code |
+| `make debug` | Show debug info |
+
+## 📖 Documentation
+
+- [Quick Start Guide](QUICK_START.md)
+- [AI-Enhanced Analysis](docs/AI_ENHANCED_ANALYSIS.md)
+- [Token Usage Analysis](docs/TOKEN_USAGE_ANALYSIS.md)
+- [Solution Comparison](docs/IDE_VS_SCRIPT_COMPARISON.md)
+- [Makefile Guide](docs/MAKEFILE_USAGE.md)
+- [Conda Setup](docs/CONDA_SETUP.md)
+
+## 🎯 Feature Details
+
+### 1. Serena Multi-Language Code Analysis
+
+- **Supported Languages**: Python, JavaScript, TypeScript, Java, Go, Rust, C/C++, PHP, Ruby, Swift, and 20+ more
+- **Analysis Scope**:
+  - Directory structure and file distribution
+  - Code symbols (classes, functions, variables)
+  - Language usage ratios
+  - Project size statistics
+- **Output**: Markdown + JSON dual-format reports
+
+### 2. AI-Enhanced Deep Analysis (DeepSeek)
+
+- **Cost**: ~¥0.01-0.03 per analysis
+- **Dimensions**:
+  - Project architecture evaluation
+  - Tech stack modernization
+  - Code quality score (1-10)
+  - Potential issue identification
+  - Improvement suggestions (8-15 items)
+  - Scalability and maintainability analysis
+  - **Docker strategy recommendations**
+  - **Framework upgrade suggestions**
+- **Output**: AI-enhanced Markdown reports
+
+### 3. AI-Driven Docker Auto-Generation
+
+- **Smart Detection**:
+  - Project type (Next.js, FastAPI, Django, React, Vue, Go, Java, etc.)
+  - Database requirements (PostgreSQL, MySQL, MongoDB, Redis)
+  - Dependencies and config files
+  - Smart npm/pnpm choice based on lockfile
+- **AI Optimization**:
+  - Base image selection (alpine, slim, distroless)
+  - Multi-stage build strategy
+  - Port and security optimization
+  - Health check configuration
+  - CI/CD integration
+- **Generated Files**:
+  - `Dockerfile`, `docker-compose.yml`, `.dockerignore`
+  - `docker-build.sh`, `docker-run.sh`, `DOCKER_USAGE.md`
+
+### 4. Report Management
+
 ```
-
-### 🔍 一键分析命令（推荐）
-
-|| 命令 | 说明 | AI 成本 |
-||------|------|---------|
-|| `make analyze-full` | 一键完整分析（Serena + AI + Docker） | ~¥0.017 |
-|| `make analyze-full-serena` | 只运行 Serena 分析 | ¥0 |
-|| `make analyze-full-skip-ai` | 跳过 AI，运行 Serena + Docker | ¥0 |
-|| `make analyze-full-skip-docker` | 跳过 Docker，运行 Serena + AI | ~¥0.017 |
-|| `make analyze-full-force` | 强制覆盖已有 Docker 配置 | ~¥0.017 |
-
-### 🔍 核心分析命令
-
-|| 命令 | 说明 | AI 成本 |
-||------|------|---------|
-|| `make analyze-ai` | 一键 AI 增强分析（完整流程） | ~¥0.017 |
-|| `make analyze-skip-ai` | 仅 Serena 分析（跳过 AI） | ¥0 |
-|| `make analyze-ai-only` | 对已有报告进行 AI 增强 | ~¥0.017 |
-|| `make analyze` | 生成 Markdown 报告（多语言）| ¥0 |
-|| `make analyze-json` | 生成 JSON 报告（多语言）| ¥0 |
-
-### 🐳 Docker 命令
-
-|| 命令 | 说明 |
-||------|------|
-|| `make docker-check` | 检查项目 Docker 配置 |
-|| `make docker-generate` | 生成 Docker 配置（AI 增强）|
-|| `make docker-build` | 构建 Docker 镜像 |
-|| `make docker-run` | 运行 Docker 容器 |
-|| `make docker-compose-up` | 启动 docker-compose |
-|| `make docker-compose-down` | 停止 docker-compose |
-
-### 🧹 清理命令
-
-|| 命令 | 说明 |
-||------|------|
-|| `make clean` | 清理缓存和临时文件 |
-|| `make clean-reports` | 清理旧的分析报告 |
-|| `make clean-all` | 清理所有生成文件 |
-
-### 🛠️ 开发命令
-
-|| 命令 | 说明 |
-||------|------|
-|| `make install` | 安装依赖 |
-|| `make test` | 运行测试 |
-|| `make lint` | 代码检查 |
-|| `make format` | 格式化代码 |
-|| `make debug` | 显示调试信息 |
-
-### 🐍 Conda 环境命令
-
-|| 命令 | 说明 |
-||------|------|
-|| `make conda-create` | 创建 Conda 环境 |
-|| `make conda-activate` | 激活 Conda 环境 |
-|| `make conda-install` | 安装 Conda 依赖 |
-
-## 📖 详细文档
-
-- [一键分析工具快速指南](QUICK_START.md) - full_analyzer.py 使用说明（推荐先看这个！）
-- [AI 增强分析详解](AI_ENHANCED_ANALYSIS.md) - AI 分析架构和使用指南
-- [Token 使用分析](TOKEN_USAGE_ANALYSIS.md) - Token 消耗和成本分析（每次分析仅需 ¥0.012）
-- [方案对比](IDE_VS_SCRIPT_COMPARISON.md) - Python 脚本 vs IDE + AI 对比
-- [问题与商业化分析](CRITICAL_ANALYSIS.md) - 方案缺陷、风险和赚钱可能性
-- [Makefile 使用指南](MAKEFILE_USAGE.md) - Makefile 命令详解
-- [Conda 环境设置](CONDA_SETUP.md) - Conda 环境配置指南
-
-## 🎯 功能详解
-
-### 1. Serena 多语言代码分析
-
-- **支持语言**：Python、JavaScript、TypeScript、Java、Go、Rust、C/C++、PHP、Ruby、Swift 等 20+ 语言
-- **分析内容**：
-  - 目录结构和文件分布
-  - 代码符号（类、函数、变量）
-  - 语言使用比例
-  - 项目规模统计
-- **输出**：Markdown 和 JSON 双格式报告
-
-### 2. AI 增强深度分析（DeepSeek）
-
-- **成本**：每次分析约 **¥0.01-0.03**（超低成本）
-- **分析维度**：
-  - 项目架构评估
-  - 技术栈现代化程度
-  - 代码质量评分（1-10）
-  - 潜在问题识别
-  - 改进建议（8-15 条）
-  - 可扩展性和可维护性分析
-  - **Docker 策略建议**
-  - **框架升级建议**（新增）
-- **输出**：AI 增强的 Markdown 报告（包含专业建议）
-
-### 3. AI 驱动的 Docker 自动生成
-
-- **智能检测**：
-  - 项目类型（Next.js、FastAPI、Django、React、Vue、Go、Java 等）
-  - 数据库需求（PostgreSQL、MySQL、MongoDB、Redis）
-  - 依赖关系
-  - 配置文件
-  - **package-lock.json 存在性**（智能选择 `npm ci` 或 `npm install`）
-- **AI 优化建议**：
-  - 基础镜像选择（alpine、slim、distroless）
-  - 多阶段构建策略
-  - 端口配置优化
-  - 性能和安全优化
-  - 健康检查配置
-  - CI/CD 集成方案
-- **生成文件**：
-  - `Dockerfile`
-  - `docker-compose.yml`
-  - `.dockerignore`
-  - `docker-build.sh`
-  - `docker-run.sh`
-  - `DOCKER_USAGE.md`
-
-### 4. 报告管理
-
-```bash
 reports/
-├── ai-chat_analysis_20260125.json      # Serena 原始数据
-├── ai-chat_analysis_20260125.md        # Serena Markdown 报告
-└── ai-chat_analysis_20260125-ai.md     # AI 增强报告（包含 Docker 策略）
+├── project_analysis_20260125.json      # Serena raw data
+├── project_analysis_20260125.md        # Serena Markdown report
+└── project_analysis_20260125-ai.md     # AI-enhanced report
 ```
 
-## 💰 成本分析
+## 💰 Cost Analysis
 
-### Token 消耗
+### Token Usage
 
-### Token 消耗
+| Analysis Type | Tokens | Cost |
+|--------------|--------|------|
+| Serena Structure | 0 | ¥0 |
+| AI Code Quality | ~2,500 | ~¥0.005 |
+| AI Docker Strategy | ~5,100 | ~¥0.007 |
+| AI Framework Upgrade | ~2,500 | ~¥0.005 |
+| **Full Analysis** | **~10,100** | **~¥0.017** |
 
-|| 分析类型 | Tokens | 成本 |
-||---------|--------|------|
-|| Serena 结构分析 | 0 | ¥0 |
-|| AI 代码质量分析 | ~2,500 | ~¥0.005 |
-|| AI Docker 策略分析 | ~5,100 | ~¥0.007 |
-|| AI 框架升级建议 | ~2,500 | ~¥0.005 |
-|| **完整分析** | **~10,100** | **~0.017** |
+### Cost Comparison
 
-### 实际案例（ai-chat 项目）
+| Approach | Cost | Time | Quality |
+|----------|------|------|---------|
+| Python Script | **¥0.018/run** | 2-3 min | Professional |
+| IDE + AI | Free (limited) | 15-30 min | Prompt-dependent |
+| Manual | ¥50-200 | 30-60 min | Inconsistent |
 
-- **文件数**：49 个（TypeScript 44, JavaScript 5）
-- **Token 消耗**：7,500 tokens
-- **实际成本**：**¥0.018**（不到 2 分钱）
-- **节省时间**：30-60 分钟人工
-- **获得价值**：优化的 Next.js Docker 配置 + 15+ 条 AI 建议
+## 🎬 Use Cases
 
-### 成本对比
-
-|| 方案 | 成本 | 时间 | 质量 |
-||------|------|------|------|
-|| Python 脚本 | **¥0.018/次** | 2-3 分钟 | 专业级 |
-|| IDE + AI | 免费（有额度限制） | 15-30 分钟 | 依赖提示 |
-|| 人工编写 | ¥50-200 | 30-60 分钟 | 参差不齐 |
-
-## 🎬 使用场景
-
-### 场景 1：快速了解新项目
+### Quick Project Onboarding
 ```bash
-# 5 分钟获得完整项目分析
 export PROJECT_PATH=/path/to/new/project
 make analyze-full
-# 查看 reports/ 目录下的完整报告
 ```
 
-### 场景 2：批量分析多个项目
+### Batch Analysis
 ```bash
-# 批量分析所有微服务
 for dir in services/*/; do
     PROJECT_PATH="$dir" make analyze-full
 done
-# 自动生成所有项目的报告和 Docker 配置
 ```
 
-### 场景 3：CI/CD 集成
+### CI/CD Integration
 ```yaml
-# GitHub Actions 示例
 - name: Analyze code
   run: make analyze-full
-
 - name: Build and test
   run: |
     make docker-build
     make docker-run
 ```
 
-### 场景 4：代码审查辅助
+### Code Review Assistant
 ```bash
-# 在 PR 前进行 AI 审查
 make analyze-full-skip-docker
-# 查看 AI 指出的潜在问题和改进建议
-# 根据 AI 建议优化代码
+# Review AI suggestions
 ```
 
-### 场景 5：容器化现有项目
+### Containerize Legacy Projects
 ```bash
-# 老项目添加 Docker 支持
 export PROJECT_PATH=/path/to/legacy/project
 make analyze-full-skip-ai
-# AI 自动生成优化的 Docker 配置
-# 直接运行：make docker-build && make docker-run
+make docker-build && make docker-run
 ```
 
-## 🔧 技术要求
+## 🔧 Requirements
 
-- **Python**：3.8+
-- **Serena MCP**：最新版本
-- **AI API**：DeepSeek API Key（或其他 OpenAI 兼容 API）
-- **操作系统**：macOS、Linux、Windows（WSL）
+- **Python**: 3.8+
+- **Serena MCP**: Latest
+- **AI API**: DeepSeek API Key (or OpenAI-compatible)
+- **OS**: macOS, Linux, Windows (WSL)
 
-## 🤝 贡献
+## 🤝 Contributing
 
-欢迎贡献代码、提交 Issue 或提出改进建议！
+Issues and pull requests are welcome!
 
-## 📄 许可证
+## 📄 License
 
-MIT License - 详见 LICENSE 文件
-
-## ⭐ Star 历史
-
-如果这个项目对你有帮助，请给它一个 ⭐！
+MIT
 
 ---
 
-**💡 提示**：每个功能的详细说明和文档都在 `docs/` 目录下，建议查看！
+**💡 Tip**: Detailed documentation is available in the `docs/` directory.
 
-**💰 成本提醒**：AI 分析功能需要配置 API Key，每次分析仅需约 ¥0.01-0.03，超低成本！
-
-**🚀 快速开始**：强烈建议先阅读 [QUICK_START.md](QUICK_START.md) 了解一键完整分析工具的使用！
+**💰 Cost Reminder**: AI analysis requires an API key — each run costs only ~¥0.01-0.03.
