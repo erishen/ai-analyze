@@ -424,7 +424,7 @@ class MultiLevelCache:
     def make_key(*parts: str) -> str:
         """生成缓存键"""
         combined = ":".join(str(p) for p in parts)
-        return hashlib.md5(combined.encode()).hexdigest()
+        return hashlib.sha256(combined.encode()).hexdigest()
 
     def get(self, key: str) -> Optional[Any]:
         """

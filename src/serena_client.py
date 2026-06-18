@@ -338,11 +338,8 @@ def main():
             result = client.find_file(args.mask, args.path)
             print(json.dumps(result, indent=2, ensure_ascii=False))
 
-    except Exception as e:
-        print(f"错误: {e}", file=sys.stderr)
-        import traceback
-
-        traceback.print_exc()
+    except Exception:
+        print("错误: 内部服务器错误", file=sys.stderr)
         sys.exit(1)
 
 

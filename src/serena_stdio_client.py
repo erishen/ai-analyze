@@ -412,11 +412,8 @@ async def main():
     except RuntimeError as e:
         print(f"错误: {e}", file=sys.stderr)
         sys.exit(1)
-    except Exception as e:
-        print(f"错误: {e}", file=sys.stderr)
-        import traceback
-
-        traceback.print_exc()
+    except Exception:
+        print("错误: 内部服务器错误", file=sys.stderr)
         sys.exit(1)
 
 

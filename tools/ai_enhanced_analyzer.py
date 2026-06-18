@@ -1343,7 +1343,7 @@ docker-compose up -d
         """生成缓存键"""
         # 使用项目路径的 hash + 分析类型作为键
         import hashlib
-        path_hash = hashlib.md5(project_path.encode()).hexdigest()[:12]
+        path_hash = hashlib.sha256(project_path.encode()).hexdigest()[:12]
         return f"{path_hash}_{analysis_type}.json"
 
     def _get_cache(self, cache_key: str) -> Optional[Dict[str, Any]]:
@@ -1411,7 +1411,7 @@ docker-compose up -d
         if project_path:
             # 清除特定项目的缓存
             import hashlib
-            path_hash = hashlib.md5(project_path.encode()).hexdigest()[:12]
+            path_hash = hashlib.sha256(project_path.encode()).hexdigest()[:12]
             cache_files = [
                 self.cache_dir / f"{path_hash}_code_quality.json",
                 self.cache_dir / f"{path_hash}_docker_strategy.json"
@@ -1476,8 +1476,6 @@ def main():
 
     except Exception as e:
         print(f"❌ 错误: {e}")
-        import traceback
-        traceback.print_exc()
         exit(1)
 
 

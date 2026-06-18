@@ -694,8 +694,6 @@ async def main():
 
     except Exception as e:
         print(f"❌ 分析过程中出现错误: {e}")
-        import traceback
-        traceback.print_exc()
 
 if __name__ == '__main__':
     asyncio.run(main())

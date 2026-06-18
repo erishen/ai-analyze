@@ -10,6 +10,7 @@ An intelligent code analysis toolkit based on **MCP (Model Context Protocol)** a
 
 - 🔍 **Serena Code Structure Analysis** — Multi-language support (20+ languages), intelligent symbol parsing
 - 🤖 **AI-Enhanced Analysis** — DeepSeek-powered code quality & architecture evaluation
+- 🔌 **MCP Server** — Expose analysis capabilities as MCP Tools for AI agents (Claude, Cursor, Trae, etc.)
 - 🐳 **Docker Auto-Generation** — AI-driven, intelligent containerization recommendations
 - 💰 **Ultra-Low Cost** — ~¥0.01-0.03 per full analysis
 - ⚡ **One-Click Automation** — Makefile-driven, 2-3 minutes for complete workflow
@@ -243,6 +244,61 @@ Run `make help` to see all commands.
 - [Solution Comparison](docs/IDE_VS_SCRIPT_COMPARISON.md)
 - [Makefile Guide](docs/MAKEFILE_USAGE.md)
 - [Conda Setup](docs/CONDA_SETUP.md)
+
+## 🔌 MCP Server
+
+ai-analyze can run as an MCP Server, exposing analysis capabilities as tools for AI agents (Claude, Cursor, Trae, etc.).
+
+### Available MCP Tools
+
+| Tool | Description |
+|------|-------------|
+| `analyze_project` | Full project analysis (security, quality, dependency, AST) |
+| `scan_security` | Security vulnerability scanning |
+| `analyze_quality` | Code quality scoring (0-100, A-F grade) |
+| `analyze_ast` | Single file AST analysis (complexity, code smells) |
+| `detect_similarities` | Duplicate and similar code detection |
+| `analyze_dependencies` | Module dependency graph analysis |
+
+### Start MCP Server
+
+```bash
+# Via CLI entry point
+ai-analyze-mcp
+
+# Or directly
+python -m src.mcp_server
+```
+
+### Configure in AI Agents
+
+Add to your MCP client configuration (e.g., Claude Desktop, Cursor, Trae):
+
+```json
+{
+  "mcpServers": {
+    "ai-analyze": {
+      "command": "python",
+      "args": ["-m", "src.mcp_server"],
+      "cwd": "/path/to/ai-analyze"
+    }
+  }
+}
+```
+
+Or with `uv`:
+
+```json
+{
+  "mcpServers": {
+    "ai-analyze": {
+      "command": "uv",
+      "args": ["run", "python", "-m", "src.mcp_server"],
+      "cwd": "/path/to/ai-analyze"
+    }
+  }
+}
+```
 
 ## 🎯 Feature Details
 

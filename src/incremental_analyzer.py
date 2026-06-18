@@ -78,14 +78,14 @@ class IncrementalAnalyzer:
         """计算文件哈希"""
         try:
             with open(file_path, "rb") as f:
-                return hashlib.md5(f.read()).hexdigest()
+                return hashlib.sha256(f.read()).hexdigest()
         except Exception as e:
             logger.warning(f"计算文件哈希失败 {file_path}: {e}")
             return ""
 
     def get_project_hash(self, project_path: str) -> str:
         """计算项目哈希"""
-        return hashlib.md5(project_path.encode()).hexdigest()[:12]
+        return hashlib.sha256(project_path.encode()).hexdigest()[:12]
 
     def get_cache_path(self, project_path: str) -> Path:
         """获取缓存文件路径"""

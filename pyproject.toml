@@ -34,6 +34,7 @@ dependencies = [
     "tree-sitter-go>=0.20.0",
     "tree-sitter-java>=0.20.0",
     "astroid>=3.0.0",
+    "mcp>=1.0.0",
 ]
 
 [project.optional-dependencies]
@@ -47,6 +48,7 @@ dev = [
 
 [project.scripts]
 ai-analyze = "cli:main"
+ai-analyze-mcp = "mcp_server:main"
 
 [project.urls]
 "Homepage" = "https://github.com/erishen/ai-analyze"

@@ -10,6 +10,7 @@
 
 - 🔍 **Serena 代码结构分析**：多语言支持（20+ 语言），智能符号解析
 - 🤖 **AI 增强分析**：DeepSeek 深度评估代码质量、架构设计
+- 🔌 **MCP 服务**：对外暴露分析能力为 MCP Tools，供 AI Agent（Claude、Cursor、Trae 等）调用
 - 🐳 **Docker 自动生成**：AI 驱动，智能推荐最优容器化方案
 - 💰 **超低成本**：每次完整分析仅需 **¥0.01-0.03**
 - ⚡ **一键自动化**：Makefile 驱动，2-3 分钟完成全流程
@@ -272,6 +273,61 @@ make help
 - [问题与商业化分析](CRITICAL_ANALYSIS.md) - 方案缺陷、风险和赚钱可能性
 - [Makefile 使用指南](MAKEFILE_USAGE.md) - Makefile 命令详解
 - [Conda 环境设置](CONDA_SETUP.md) - Conda 环境配置指南
+
+## 🔌 MCP 服务
+
+ai-analyze 可作为 MCP Server 运行，将分析能力暴露为 MCP Tools，供 AI Agent（Claude、Cursor、Trae 等）直接调用。
+
+### 可用 MCP Tools
+
+| Tool | 说明 |
+|------|------|
+| `analyze_project` | 全量项目分析（安全、质量、依赖、AST） |
+| `scan_security` | 安全漏洞扫描 |
+| `analyze_quality` | 代码质量评分（0-100，A-F 等级） |
+| `analyze_ast` | 单文件 AST 分析（复杂度、代码坏味道） |
+| `detect_similarities` | 重复和相似代码检测 |
+| `analyze_dependencies` | 模块依赖图分析 |
+
+### 启动 MCP 服务
+
+```bash
+# 通过 CLI 入口
+ai-analyze-mcp
+
+# 或直接运行
+python -m src.mcp_server
+```
+
+### 在 AI Agent 中配置
+
+添加到 MCP 客户端配置（如 Claude Desktop、Cursor、Trae）：
+
+```json
+{
+  "mcpServers": {
+    "ai-analyze": {
+      "command": "python",
+      "args": ["-m", "src.mcp_server"],
+      "cwd": "/path/to/ai-analyze"
+    }
+  }
+}
+```
+
+或使用 `uv`：
+
+```json
+{
+  "mcpServers": {
+    "ai-analyze": {
+      "command": "uv",
+      "args": ["run", "python", "-m", "src.mcp_server"],
+      "cwd": "/path/to/ai-analyze"
+    }
+  }
+}
+```
 
 ## 🎯 功能详解
 
