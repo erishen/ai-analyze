@@ -174,8 +174,11 @@ class QualityScorer:
 
     def _calculate_reliability_score(self, metrics: QualityMetrics) -> float:
         """计算可靠性评分"""
-        # 测试覆盖率评分（test_coverage 可能是 0~1 或 0~100，归一化）
-        if metrics.test_coverage <= 1.0:
+        # 测试覆盖率评分
+        # 约定: 0~1 表示比例值(如 0.75 = 75%), 1~100 表示百分比值
+        # 使用阈值 1.5 区分: <=1.5 视为比例值, >1.5 视为百分比值
+        # 这样 1%(0.01) 不会被误判为 100%
+        if metrics.test_coverage <= 1.5 and metrics.test_coverage >= 0:
             coverage_score = metrics.test_coverage * 100
         else:
             coverage_score = min(100, max(0, metrics.test_coverage))

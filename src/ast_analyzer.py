@@ -262,14 +262,21 @@ class PythonASTAnalyzer(ASTAnalyzer):
         """计算函数的圈复杂度"""
         cyclomatic = 1
         nesting_depth = 0
-        current_depth = 0
 
-        for child in self.ast.walk(node):
-            if isinstance(child, (self.ast.If, self.ast.For, self.ast.While, self.ast.ExceptHandler)):
-                cyclomatic += 1
-            if isinstance(child, (self.ast.If, self.ast.For, self.ast.While, self.ast.With)):
-                current_depth += 1
-                nesting_depth = max(nesting_depth, current_depth)
+        # 使用递归遍历正确计算嵌套深度
+        def _walk_for_complexity(n, depth=0):
+            nonlocal cyclomatic, nesting_depth
+            for child in self.ast.iter_child_nodes(n):
+                if isinstance(child, (self.ast.If, self.ast.For, self.ast.While, self.ast.ExceptHandler)):
+                    cyclomatic += 1
+                if isinstance(child, (self.ast.If, self.ast.For, self.ast.While, self.ast.With)):
+                    new_depth = depth + 1
+                    nesting_depth = max(nesting_depth, new_depth)
+                    _walk_for_complexity(child, new_depth)
+                else:
+                    _walk_for_complexity(child, depth)
+
+        _walk_for_complexity(node)
 
         lines = node.end_lineno - node.lineno + 1 if node.end_lineno else 1
 

@@ -72,8 +72,8 @@ class FileException(AIAnalyzeException):
     pass
 
 
-class FileNotFoundError(FileException):
-    """文件不存在异常"""
+class InputFileNotFoundException(FileException):
+    """输入文件不存在异常"""
 
     pass
 

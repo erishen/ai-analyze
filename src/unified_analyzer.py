@@ -115,12 +115,15 @@ class UnifiedAnalyzer:
         )
 
         # 构建 AST 数据索引（按文件路径）
-        self._build_ast_index(ast_report)
+        ast_index = self._build_ast_index(ast_report)
+
+        # 构建 Serena 数据索引（按文件路径）
+        serena_index = self._build_serena_index(serena_report)
 
         # 处理每个文件
         for file_analysis in ast_report.get("files", []):
             # 融合该文件的数据
-            unified_file = self._merge_file_data(file_analysis, serena_report)
+            unified_file = self._merge_file_data(file_analysis, serena_index)
 
             if unified_file:
                 unified.files.append(unified_file)
@@ -140,19 +143,33 @@ class UnifiedAnalyzer:
             index[file_path] = file_analysis
         return index
 
+    def _build_serena_index(self, serena_report: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+        """构建 Serena 数据索引（按文件路径）"""
+        index = {}
+        for file_data in serena_report.get("files", []):
+            file_path = file_data.get("file_path", "")
+            index[file_path] = file_data
+        return index
+
     def _merge_file_data(
-        self, ast_file: Dict[str, Any], serena_report: Dict[str, Any]
+        self, ast_file: Dict[str, Any], serena_index: Dict[str, Dict[str, Any]]
     ) -> Optional[UnifiedFileAnalysis]:
         """融合单个文件的数据"""
         file_path = ast_file.get("file_path", "")
         language = ast_file.get("language", "unknown")
         total_lines = ast_file.get("total_lines", 0)
 
+        # 查找对应的 Serena 数据
+        serena_file = serena_index.get(file_path, {})
+
         # 创建统一文件分析
         unified_file = UnifiedFileAnalysis(file_path=file_path, language=language, total_lines=total_lines)
 
         # 处理函数
         for func in ast_file.get("functions", []):
+            # 查找 Serena 中对应的符号数据
+            func_serena_data = self._find_serena_symbol(serena_file, func.get("name", ""), "function")
+
             symbol = UnifiedSymbol(
                 name=func.get("name", "unknown"),
                 kind="function",
@@ -160,6 +177,7 @@ class UnifiedAnalyzer:
                 language=language,
                 line_start=func.get("line_start", 0),
                 line_end=func.get("line_end", 0),
+                serena_data=func_serena_data,
                 complexity=func.get("complexity"),
                 code_smells=func.get("code_smells", []),
                 parameters=func.get("parameters", []),
@@ -176,6 +194,9 @@ class UnifiedAnalyzer:
 
         # 处理类
         for cls in ast_file.get("classes", []):
+            # 查找 Serena 中对应的符号数据
+            cls_serena_data = self._find_serena_symbol(serena_file, cls.get("name", ""), "class")
+
             symbol = UnifiedSymbol(
                 name=cls.get("name", "unknown"),
                 kind="class",
@@ -183,6 +204,7 @@ class UnifiedAnalyzer:
                 language=language,
                 line_start=cls.get("line_start", 0),
                 line_end=cls.get("line_end", 0),
+                serena_data=cls_serena_data,
                 code_smells=cls.get("code_smells", []),
             )
 
@@ -208,7 +230,23 @@ class UnifiedAnalyzer:
             "total_code_smells": len(unified_file.code_smells),
         }
 
+        # 存储 Serena 元数据
+        if serena_file:
+            unified_file.serena_metadata = {
+                "total_symbols": len(serena_file.get("symbols", [])),
+                "language": serena_file.get("language", ""),
+            }
+
         return unified_file
+
+    def _find_serena_symbol(
+        self, serena_file: Dict[str, Any], symbol_name: str, symbol_kind: str
+    ) -> Optional[Dict[str, Any]]:
+        """在 Serena 文件数据中查找对应的符号"""
+        for symbol in serena_file.get("symbols", []):
+            if symbol.get("name") == symbol_name and symbol.get("kind", "").lower() == symbol_kind:
+                return symbol
+        return None
 
     def _calculate_quality_score(self, symbol: UnifiedSymbol) -> float:
         """计算符号的质量分数 (0-100)"""

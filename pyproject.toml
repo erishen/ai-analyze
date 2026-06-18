@@ -45,6 +45,9 @@ dev = [
     "mypy>=1.0.0",
 ]
 
+[project.scripts]
+ai-analyze = "cli:main"
+
 [project.urls]
 "Homepage" = "https://github.com/erishen/ai-analyze"
 "Repository" = "https://github.com/erishen/ai-analyze.git"

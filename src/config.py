@@ -91,13 +91,24 @@ class AnalysisConfig:
         if self.ast_rules_custom is None:
             self.ast_rules_custom = []
 
+    # 敏感字段列表
+    _SENSITIVE_KEYS = {"openai_api_key", "cache_redis_password"}
+
     def to_dict(self) -> Dict[str, Any]:
-        """转换为字典"""
-        return asdict(self)
+        """转换为字典（敏感字段脱敏）"""
+        data = asdict(self)
+        for key in self._SENSITIVE_KEYS:
+            if key in data and data[key]:
+                data[key] = "***"
+        return data
 
     def to_json(self) -> str:
-        """转换为 JSON 字符串"""
+        """转换为 JSON 字符串（敏感字段脱敏）"""
         return json.dumps(self.to_dict(), indent=2, ensure_ascii=False)
+
+    def to_dict_raw(self) -> Dict[str, Any]:
+        """转换为字典（包含敏感字段，仅内部使用）"""
+        return asdict(self)
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "AnalysisConfig":

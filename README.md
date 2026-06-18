@@ -1,4 +1,8 @@
-# 🤖 AI-Powered Code Analysis Tool
+<div align="right">
+  <a href="README.zh-CN.md">🇨🇳 中文</a>
+</div>
+
+# AI-Powered Code Analysis Tool
 
 An intelligent code analysis toolkit based on **MCP (Model Context Protocol)** and **DeepSeek AI**, providing Serena code structure analysis, AI-driven quality assessment, Docker auto-generation, and end-to-end solutions.
 
@@ -19,29 +23,66 @@ An intelligent code analysis toolkit based on **MCP (Model Context Protocol)** a
 ├── src/                           # Source code
 │   ├── serena_client.py           # Serena MCP client
 │   ├── serena_stdio_client.py     # Stdio communication client
-│   ├── __init__.py
-│   └── serena_mcp_client.egg-info/  # Package metadata
+│   ├── unified_analyzer.py        # Unified analysis engine
+│   ├── analysis_api.py            # Analysis REST API
+│   ├── analysis_integration.py    # Analysis integration layer
+│   ├── ast_analyzer.py            # AST-based code analyzer
+│   ├── ast_rules.py               # AST analysis rules
+│   ├── ast_visualizer.py          # AST visualization
+│   ├── benchmark.py               # Performance benchmarking
+│   ├── cache_warmer.py            # Cache pre-warming
+│   ├── config.py                  # Configuration management
+│   ├── data_store.py              # Data persistence
+│   ├── dependency_graph.py        # Dependency graph builder
+│   ├── exceptions.py              # Custom exception hierarchy
+│   ├── incremental_analyzer.py    # Incremental analysis
+│   ├── logger.py                  # Structured logging
+│   ├── memory.py                  # Memory management
+│   ├── multi_level_cache.py       # Multi-level cache system
+│   ├── performance_analyzer.py    # Performance analysis
+│   ├── plugin_system.py           # Plugin architecture
+│   ├── progress.py                # Progress tracking
+│   ├── quality_score.py           # Code quality scoring
+│   ├── report_system.py           # Report generation
+│   ├── retry.py                   # Retry with backoff
+│   ├── security_scanner.py        # Security vulnerability scanner
+│   ├── similarity.py              # Code similarity detection
+│   ├── tech_debt.py               # Technical debt tracker
+│   └── __init__.py
 ├── tools/                         # Tool scripts
 │   ├── full_analyzer.py           # One-click analysis tool
 │   ├── analyze_project_multilang.py  # Multi-language analysis
 │   ├── docker_generator.py        # Docker generator
+│   ├── smart_docker_config.py     # Smart Docker configuration
 │   ├── ai_enhanced_analyzer.py    # AI-enhanced analyzer (with framework upgrade)
 │   ├── analyze_with_ai.py         # AI analysis wrapper
+│   ├── ast_analyzer_tool.py       # AST analyzer CLI tool
 │   └── clean_generated_files.py   # Cleanup tool
+├── tests/                         # Test suite (30+ test files)
+│   ├── test_serena_client.py
+│   ├── test_unified_analyzer.py
+│   ├── test_ast_analyzer.py
+│   ├── test_security_scanner.py
+│   ├── test_quality_score.py
+│   ├── test_dependency_graph.py
+│   └── ...
 ├── examples/                      # Example code
 │   └── serena_example.py          # Serena usage example
-├── reports/                       # Analysis report output
-├── tests/                         # Tests
-│   └── test_stdio_client.py
 ├── docs/                          # Documentation
-│   ├── FRAMEWORK_UPGRADE.md       # Framework upgrade guide
-│   └── UV_GUIDE.md                # uv usage guide
-├── pyproject.toml
-├── uv.lock
-├── setup_uv.sh
-├── Makefile
-├── README.md                      # This file
-└── QUICK_START.md                 # Quick start guide
+│   ├── FEATURES.md                # Feature overview
+│   ├── INDEX.md                   # Documentation index
+│   ├── OPTIMIZATION_HISTORY.md    # Optimization history
+│   └── QUICK_START.md             # Quick start guide
+├── scripts/                       # CI/CD scripts
+│   └── ci-verify.sh               # CI verification
+├── .github/workflows/             # GitHub Actions
+│   ├── ci.yml                     # CI pipeline
+│   └── publish.yml                # Publish pipeline
+├── reports/                       # Analysis report output
+├── pyproject.toml                 # Project config
+├── Makefile                       # Build commands (35+)
+├── .env.example                   # Environment template
+└── README.md                      # This file
 ```
 
 ## 🚀 Quick Start

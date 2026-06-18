@@ -1,4 +1,8 @@
-# 🤖 AI 增强代码分析工具
+<div align="right">
+  <a href="README.md">🇺🇸 English</a>
+</div>
+
+# AI 增强代码分析工具
 
 一套基于 **MCP (Model Context Protocol)** 和 **DeepSeek AI** 的智能代码分析工具，提供 Serena 代码结构分析、AI 深度质量评估、Docker 自动生成等全流程解决方案。
 
@@ -19,32 +23,66 @@
 ├── src/                           # 源代码
 │   ├── serena_client.py           # Serena MCP 客户端
 │   ├── serena_stdio_client.py     # Stdio 通信客户端
-│   ├── __init__.py
-│   └── serena_mcp_client.egg-info/  # 包元数据
+│   ├── unified_analyzer.py        # 统一分析引擎
+│   ├── analysis_api.py            # 分析 REST API
+│   ├── analysis_integration.py    # 分析集成层
+│   ├── ast_analyzer.py            # AST 代码分析器
+│   ├── ast_rules.py               # AST 分析规则
+│   ├── ast_visualizer.py          # AST 可视化
+│   ├── benchmark.py               # 性能基准测试
+│   ├── cache_warmer.py            # 缓存预热
+│   ├── config.py                  # 配置管理
+│   ├── data_store.py              # 数据持久化
+│   ├── dependency_graph.py        # 依赖图构建
+│   ├── exceptions.py              # 自定义异常体系
+│   ├── incremental_analyzer.py    # 增量分析
+│   ├── logger.py                  # 结构化日志
+│   ├── memory.py                  # 内存管理
+│   ├── multi_level_cache.py       # 多级缓存系统
+│   ├── performance_analyzer.py    # 性能分析
+│   ├── plugin_system.py           # 插件架构
+│   ├── progress.py                # 进度追踪
+│   ├── quality_score.py           # 代码质量评分
+│   ├── report_system.py           # 报告生成
+│   ├── retry.py                   # 重试与退避
+│   ├── security_scanner.py        # 安全漏洞扫描
+│   ├── similarity.py              # 代码相似度检测
+│   ├── tech_debt.py               # 技术债务追踪
+│   └── __init__.py
 ├── tools/                         # 工具脚本
 │   ├── full_analyzer.py           # 一键分析工具
 │   ├── analyze_project_multilang.py  # 多语言分析
 │   ├── docker_generator.py        # Docker 生成器
+│   ├── smart_docker_config.py     # 智能 Docker 配置
 │   ├── ai_enhanced_analyzer.py    # AI 增强分析器（含框架升级建议）
 │   ├── analyze_with_ai.py         # AI 分析封装
+│   ├── ast_analyzer_tool.py       # AST 分析器 CLI 工具
 │   └── clean_generated_files.py   # 清理工具
+├── tests/                         # 测试套件（30+ 测试文件）
+│   ├── test_serena_client.py
+│   ├── test_unified_analyzer.py
+│   ├── test_ast_analyzer.py
+│   ├── test_security_scanner.py
+│   ├── test_quality_score.py
+│   ├── test_dependency_graph.py
+│   └── ...
 ├── examples/                      # 示例代码
 │   └── serena_example.py          # Serena 使用示例
+├── docs/                          # 文档
+│   ├── FEATURES.md                # 功能概览
+│   ├── INDEX.md                   # 文档索引
+│   ├── OPTIMIZATION_HISTORY.md    # 优化历史
+│   └── QUICK_START.md             # 快速开始指南
+├── scripts/                       # CI/CD 脚本
+│   └── ci-verify.sh               # CI 验证
+├── .github/workflows/             # GitHub Actions
+│   ├── ci.yml                     # CI 流水线
+│   └── publish.yml                # 发布流水线
 ├── reports/                       # 分析报告输出目录
-│   ├── ai-chat_analysis_20260125.json
-│   ├── ai-chat_analysis_20260125.md
-│   └── ai-chat_analysis_20260125-ai.md
-├── tests/                         # 测试文件
-│   └── test_stdio_client.py
-├── docs/                          # 详细文档
-│   ├── FRAMEWORK_UPGRADE.md       # 框架升级建议功能说明
-│   └── UV_GUIDE.md                # uv 使用指南
 ├── pyproject.toml                 # 项目配置
-├── uv.lock                        # 锁定依赖版本
-├── setup_uv.sh                    # uv 安装脚本
-├── Makefile                       # 便捷命令
-├── README.md                      # 本文件
-└── QUICK_START.md                 # 快速开始指南
+├── Makefile                       # 便捷命令（35+）
+├── .env.example                   # 环境变量模板
+└── README.md                      # 本文件
 ```
 
 ## 🚀 快速开始

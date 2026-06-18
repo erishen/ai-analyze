@@ -28,7 +28,7 @@ class CodeBlock:
     @property
     def hash(self) -> str:
         """代码块哈希"""
-        return hashlib.md5(self.content.encode()).hexdigest()
+        return hashlib.sha256(self.content.encode()).hexdigest()
 
     def normalize(self) -> str:
         """规范化代码（用于比较）"""

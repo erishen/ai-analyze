@@ -12,7 +12,7 @@ class TestCodeBlock:
     def test_hash(self):
         block = CodeBlock(file_path="a.py", start_line=1, end_line=1, content="hello")
         assert isinstance(block.hash, str)
-        assert len(block.hash) == 32
+        assert len(block.hash) == 64  # SHA-256 hex digest length
 
     def test_normalize(self):
         block = CodeBlock(

@@ -52,7 +52,11 @@ class WebhookNotifier:
         self._handlers: List[Any] = []
 
     def add_handler(self, url: str, events: Optional[List[str]] = None) -> None:
-        """添加 webhook 处理器"""
+        """添加 webhook 处理器（去重）"""
+        # 避免重复添加同一 URL
+        for handler in self._handlers:
+            if handler["url"] == url:
+                return
         self._handlers.append(
             {
                 "url": url,
@@ -95,7 +99,7 @@ class WebhookNotifier:
                 method="POST",
             )
 
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             response = await loop.run_in_executor(
                 None,
                 lambda: urllib.request.urlopen(req, timeout=10),
