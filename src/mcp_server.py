@@ -99,19 +99,112 @@ def analyze_project(project_path: str, analysis_types: str = "all") -> str:
     if "ast" in types:
         from src.ast_analyzer import ASTAnalyzerFactory, detect_language
 
-        ast_results = []
+        all_functions = 0
+        all_classes = 0
+        all_smells = 0
+        complexities: list[float] = []
+        severity_count: dict[str, int] = {}
+        smell_types: dict[str, int] = {}
+        nesting_count = 0
+        file_details: list[dict[str, Any]] = []
+
         for file_path in list(files.keys())[:100]:
             try:
                 language = detect_language(file_path)
                 if not language:
                     continue
                 analyzer = ASTAnalyzerFactory.create_analyzer(language)
-                if analyzer:
-                    result = analyzer.analyze_file(file_path)
-                    ast_results.append(dataclasses.asdict(result))
+                if not analyzer:
+                    continue
+                result = analyzer.analyze_file(file_path)
+
+                all_functions += len(result.functions)
+                all_classes += len(result.classes)
+                all_smells += len(result.code_smells)
+
+                if result.overall_complexity:
+                    complexities.append(result.overall_complexity.cyclomatic_complexity)
+                    if result.overall_complexity.nesting_depth > 4:
+                        nesting_count += 1
+
+                for smell in result.code_smells:
+                    sev = smell.severity
+                    severity_count[sev] = severity_count.get(sev, 0) + 1
+                    smell_types[smell.name] = smell_types.get(smell.name, 0) + 1
+
+                file_details.append(dataclasses.asdict(result))
             except Exception:
                 continue
-        results["ast"] = {"analyzed_files": len(ast_results), "files": ast_results[:20]}
+
+        avg_complexity = round(sum(complexities) / len(complexities), 1) if complexities else 0
+
+        sorted_complexity = sorted(
+            file_details,
+            key=lambda f: f.get("overall_complexity", {}).get("cyclomatic_complexity", 0),
+            reverse=True,
+        )
+        sorted_lines = sorted(
+            file_details,
+            key=lambda f: f.get("total_lines", 0),
+            reverse=True,
+        )
+
+        results["ast"] = {
+            "analyzed_files": len(file_details),
+            "total_files_in_project": len(files),
+            "total_functions": all_functions,
+            "total_classes": all_classes,
+            "total_code_smells": all_smells,
+            "average_cyclomatic_complexity": avg_complexity,
+            "deep_nesting_count": nesting_count,
+            "code_smells_by_severity": dict(
+                sorted(severity_count.items(), key=lambda x: -x[1])
+            ),
+            "most_common_smell_types": dict(
+                sorted(smell_types.items(), key=lambda x: -x[1])[:10]
+            ),
+            "most_complex_files": [
+                {
+                    "file": f["file_path"].replace(project_path, "").lstrip("/"),
+                    "cyclomatic_complexity": f.get("overall_complexity", {}).get(
+                        "cyclomatic_complexity", 0
+                    ),
+                    "lines_of_code": f.get("overall_complexity", {}).get(
+                        "lines_of_code", 0
+                    ),
+                    "functions": len(f.get("functions", [])),
+                    "code_smells": len(f.get("code_smells", [])),
+                }
+                for f in sorted_complexity[:5]
+            ],
+            "largest_files": [
+                {
+                    "file": f["file_path"].replace(project_path, "").lstrip("/"),
+                    "total_lines": f.get("total_lines", 0),
+                    "functions": len(f.get("functions", [])),
+                    "classes": len(f.get("classes", [])),
+                    "code_smells": len(f.get("code_smells", [])),
+                }
+                for f in sorted_lines[:5]
+            ],
+            "language_breakdown": {},
+        }
+
+        for f in file_details:
+            lang = f.get("language", "unknown")
+            if lang not in results["ast"]["language_breakdown"]:
+                results["ast"]["language_breakdown"][lang] = {
+                    "files": 0,
+                    "functions": 0,
+                    "classes": 0,
+                }
+            results["ast"]["language_breakdown"][lang]["files"] += 1
+            results["ast"]["language_breakdown"][lang]["functions"] += len(
+                f.get("functions", [])
+            )
+            results["ast"]["language_breakdown"][lang]["classes"] += len(
+                f.get("classes", [])
+            )
 
     return json.dumps(results, ensure_ascii=False, indent=2, default=str)
 
