@@ -2,27 +2,117 @@
 
 import argparse
 import json
+import logging
 import sys
+from collections import Counter
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 
-# Re-export the analysis functions from tools/ast_analyzer_tool.py via subprocess
-# We import from the tool module directly for the heavy lifting.
+for name in ("src.ast_rules", "src.tech_debt", "src.quality_score", "src.security_scanner", "src"):
+    logging.getLogger(name).setLevel(logging.WARNING)
+
 _SCRIPT = Path(__file__).resolve().parent.parent / "tools" / "ast_analyzer_tool.py"
 
 EXCLUDE_DIRS = {".venv", "venv", "__pycache__", ".git", "node_modules", ".ruff_cache", ".mypy_cache", ".pytest_cache", ".cache", "htmlcov", ".eggs"}
 
 
+def _aggregate_smells(file_result) -> tuple[list, list]:
+    """Collect all code smells from file, function, and class levels."""
+    all_smells = list(file_result.code_smells)
+    for func in file_result.functions:
+        all_smells.extend(func.code_smells)
+    for cls in file_result.classes:
+        all_smells.extend(cls.code_smells)
+    return all_smells
+
+
+def _build_summary_results(p: Path, file_results: list) -> dict:
+    """Build aggregated summary from all file analysis results."""
+    total_complexity = 0
+    language_stats = {}
+    severity_counter = Counter()
+    smell_counter = Counter()
+    deep_nesting = 0
+    file_entries = []
+
+    for f_r in file_results:
+        total_complexity += f_r.overall_complexity.cyclomatic_complexity
+
+        if f_r.overall_complexity.nesting_depth > 4:
+            deep_nesting += 1
+
+        lang = f_r.language
+        if lang not in language_stats:
+            language_stats[lang] = {"files": 0, "functions": 0, "classes": 0}
+        language_stats[lang]["files"] += 1
+        language_stats[lang]["functions"] += len(f_r.functions)
+        language_stats[lang]["classes"] += len(f_r.classes)
+
+        all_smells = _aggregate_smells(f_r)
+        for smell in all_smells:
+            severity_counter[smell.severity] += 1
+            smell_counter[smell.name] += 1
+
+        file_entries.append({
+            "file_path": f_r.file_path,
+            "cyclomatic_complexity": f_r.overall_complexity.cyclomatic_complexity,
+            "lines_of_code": f_r.overall_complexity.lines_of_code,
+            "total_lines": f_r.total_lines,
+            "functions": len(f_r.functions),
+            "classes": len(f_r.classes),
+            "code_smells": len(all_smells),
+        })
+
+    total_files = len(file_results)
+    total_functions = sum(len(f_r.functions) for f_r in file_results)
+    total_classes = sum(len(f_r.classes) for f_r in file_results)
+    total_smells = sum(len(_aggregate_smells(f_r)) for f_r in file_results)
+
+    file_entries.sort(key=lambda x: x["cyclomatic_complexity"], reverse=True)
+    most_complex = [
+        {
+            "file": e["file_path"].replace(str(p), "").lstrip("/"),
+            "cyclomatic_complexity": e["cyclomatic_complexity"],
+            "lines_of_code": e["lines_of_code"],
+            "functions": e["functions"],
+            "code_smells": e["code_smells"],
+        }
+        for e in file_entries[:5]
+    ]
+
+    file_entries.sort(key=lambda x: x["total_lines"], reverse=True)
+    largest = [
+        {
+            "file": e["file_path"].replace(str(p), "").lstrip("/"),
+            "total_lines": e["total_lines"],
+            "functions": e["functions"],
+            "classes": e["classes"],
+            "code_smells": e["code_smells"],
+        }
+        for e in file_entries[:5]
+    ]
+
+    return {
+        "total_files": total_files,
+        "total_functions": total_functions,
+        "total_classes": total_classes,
+        "total_code_smells": total_smells,
+        "average_cyclomatic_complexity": round(total_complexity / total_files, 1) if total_files else 0,
+        "deep_nesting_count": deep_nesting,
+        "code_smells_by_severity": dict(severity_counter),
+        "most_common_smell_types": dict(smell_counter.most_common()),
+        "language_breakdown": language_stats,
+        "most_complex_files": most_complex,
+        "largest_files": largest,
+    }
+
+
 def _run_ast(project_path: str, output: Optional[str] = None, patterns=None):
     """Run AST analysis via subprocess, filtering out excluded dirs."""
-    import tempfile
-
     p = Path(project_path).resolve()
-    out_path = output
 
-    # Stage 1: list all matching files, excluding unwanted dirs
     if patterns is None:
         patterns = ["**/*.py", "**/*.js", "**/*.ts", "**/*.tsx", "**/*.jsx"]
 
@@ -39,39 +129,19 @@ def _run_ast(project_path: str, output: Optional[str] = None, patterns=None):
         print(json.dumps({"error": "No files found to analyze"}, indent=2))
         return
 
-    # Stage 2: build a temp project with only these files (symlinks) for analysis
-    # Actually, simpler: write a file list and pass to analyzer
-    # OR: just run the analysis on each file individually via the tool API
-    # Simplest: write a temp file list and use it
-
-    # Actually the easiest: run the tool on the real project but pass patterns
-    # that exclude .venv etc. Not possible with glob patterns alone.
-    # So let's do it file-by-file using the tool's analyze_file method.
-
-    # Better approach: use the tool's API directly
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
     from tools.ast_analyzer_tool import ASTAnalysisTool  # noqa: E402
 
     tool = ASTAnalysisTool(str(p))
 
-    results = {
+    raw_results = {
         "project_path": str(p),
         "timestamp": datetime.now().isoformat(),
         "analysis_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "files": [],
-        "summary": {
-            "total_files": 0,
-            "total_functions": 0,
-            "total_classes": 0,
-            "total_code_smells": 0,
-            "average_complexity": 0,
-            "languages": {},
-        },
     }
 
-    total_complexity = 0
-    language_stats = {}
-
+    file_results = []
     for file_path in sorted(files):
         try:
             file_result = tool.analyze_file(str(file_path))
@@ -79,39 +149,24 @@ def _run_ast(project_path: str, output: Optional[str] = None, patterns=None):
                 continue
 
             serialized = tool._serialize_result(file_result)
-            results["files"].append(serialized)
-            results["summary"]["total_files"] += 1
-            results["summary"]["total_functions"] += len(file_result.functions)
-            results["summary"]["total_classes"] += len(file_result.classes)
-            results["summary"]["total_code_smells"] += len(file_result.code_smells)
-            total_complexity += file_result.overall_complexity.cyclomatic_complexity
-
-            lang = file_result.language
-            if lang not in language_stats:
-                language_stats[lang] = {"files": 0, "functions": 0, "classes": 0}
-            language_stats[lang]["files"] += 1
-            language_stats[lang]["functions"] += len(file_result.functions)
-            language_stats[lang]["classes"] += len(file_result.classes)
+            raw_results["files"].append(serialized)
+            file_results.append(file_result)
 
         except Exception as e:
             print(f"Warning: failed to analyze {file_path}: {e}", file=sys.stderr)
             continue
 
-    if results["summary"]["total_files"] > 0:
-        results["summary"]["average_complexity"] = total_complexity / results["summary"]["total_files"]
-    results["summary"]["languages"] = language_stats
-
     output_path = p / f"ast_analysis_{p.name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
     if output:
         output_path = Path(output)
 
-    output_path.write_text(json.dumps(results, indent=2, ensure_ascii=False), encoding="utf-8")
+    output_path.write_text(json.dumps(raw_results, indent=2, ensure_ascii=False), encoding="utf-8")
 
-    # Print summary to stdout
-    s = results["summary"]
+    summary = _build_summary_results(p, file_results)
+
     print(json.dumps({
         "project_path": str(p),
-        "summary": s,
+        "summary": summary,
         "report_file": str(output_path),
     }, indent=2, ensure_ascii=False))
 
