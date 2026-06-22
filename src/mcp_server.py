@@ -97,7 +97,9 @@ def analyze_project(project_path: str, analysis_types: str = "all") -> str:
         results["dependency"] = analyzer.analyze_project(files).to_dict()
 
     if "ast" in types:
-        from .ast_analyzer import ASTAnalyzerFactory, detect_language
+        from .language_backend import BackendFactory
+
+        backend = BackendFactory.create()
 
         all_functions = 0
         all_classes = 0
@@ -110,13 +112,7 @@ def analyze_project(project_path: str, analysis_types: str = "all") -> str:
 
         for file_path in list(files.keys())[:100]:
             try:
-                language = detect_language(file_path)
-                if not language:
-                    continue
-                analyzer = ASTAnalyzerFactory.create_analyzer(language)
-                if not analyzer:
-                    continue
-                result = analyzer.analyze_file(file_path)
+                result = backend.analyze_file(file_path)
 
                 all_functions += len(result.functions)
                 all_classes += len(result.classes)
@@ -252,21 +248,18 @@ def analyze_quality(project_path: str) -> str:
     code_smells_count = 0
     avg_complexity = 0.0
     try:
-        from .ast_analyzer import ASTAnalyzerFactory, detect_language
+        from .language_backend import BackendFactory
+
+        backend = BackendFactory.create()
 
         complexities = []
         for file_path in list(files.keys())[:50]:
             try:
-                language = detect_language(file_path)
-                if not language:
-                    continue
-                analyzer = ASTAnalyzerFactory.create_analyzer(language)
-                if analyzer:
-                    result = analyzer.analyze_file(file_path)
-                    for func in result.functions:
-                        if func.complexity:
-                            complexities.append(func.complexity.cyclomatic_complexity)
-                    code_smells_count += len(result.code_smells)
+                result = backend.analyze_file(file_path)
+                for func in result.functions:
+                    if func.complexity:
+                        complexities.append(func.complexity.cyclomatic_complexity)
+                code_smells_count += len(result.code_smells)
             except Exception:
                 continue
         if complexities:
@@ -299,17 +292,14 @@ def analyze_ast(file_path: str) -> str:
     if not path.is_file():
         return json.dumps({"error": f"Not a file: {file_path}"})
 
-    from .ast_analyzer import ASTAnalyzerFactory, detect_language
+    from .language_backend import BackendFactory
 
-    language = detect_language(str(path))
-    if not language:
+    try:
+        backend = BackendFactory.create()
+        result = backend.analyze_file(str(path))
+    except ValueError:
         return json.dumps({"error": f"Unsupported file type: {path.suffix}"})
 
-    analyzer = ASTAnalyzerFactory.create_analyzer(language)
-    if not analyzer:
-        return json.dumps({"error": f"Unsupported file type: {path.suffix}"})
-
-    result = analyzer.analyze_file(str(path))
     return json.dumps(dataclasses.asdict(result), ensure_ascii=False, indent=2, default=str)
 
 
@@ -426,9 +416,18 @@ def get_capabilities() -> str:
     })
 
 
-def main():
-    """Start the MCP server"""
-    mcp.run(transport="stdio")
+def main(transport: str = "stdio", host: str = "0.0.0.0", port: int = 8000):
+    """Start the MCP server
+
+    Args:
+        transport: Transport type - "stdio" or "sse"
+        host: Host for SSE transport (default: 0.0.0.0)
+        port: Port for SSE transport (default: 8000)
+    """
+    if transport == "sse":
+        mcp.run(transport="sse", host=host, port=port)
+    else:
+        mcp.run(transport="stdio")
 
 
 if __name__ == "__main__":

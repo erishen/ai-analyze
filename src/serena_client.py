@@ -1,41 +1,32 @@
 #!/usr/bin/env python3
 """
 Serena MCP 客户端工具
-用于直接调用 serena 的各种工具,无需启动 MCP 服务器
+通过 MCP 协议与 Serena 服务器通信，不直接 import serena 内部 API
 """
 
+import asyncio
 import json
 import os
-import sys
 from pathlib import Path
 from typing import Any
 
-# 加载环境变量
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# 添加 serena 到 Python 路径
-serena_path = Path(os.getenv("SERENA_DIR", Path.home() / "serena"))
-if serena_path.exists():
-    sys.path.insert(0, str(serena_path / "src"))
 
-# Serene imports after setting up path
-from serena.agent import SerenaAgent  # noqa: E402
-from serena.tools import (  # noqa: E402
-    FindFileTool,
-    FindReferencingSymbolsTool,
-    FindSymbolTool,
-    GetSymbolsOverviewTool,
-    RenameSymbolTool,
-    ReplaceSymbolBodyTool,
-    SearchForPatternTool,
-    Tool,
-)
+def _check_serena_available() -> None:
+    """检查 serena 是否配置"""
+    serena_dir = os.getenv("SERENA_DIR", "")
+    if not serena_dir or not Path(serena_dir).exists():
+        raise ImportError(
+            "serena 未安装或 SERENA_DIR 未配置。"
+            "请安装 serena 并在 .env 中设置 SERENA_DIR。"
+        )
 
 
 class SerenaClient:
-    """Serena 工具客户端"""
+    """Serena 工具客户端 — 通过 MCP 协议通信"""
 
     def __init__(self, project_path: str | None = None):
         """
@@ -44,15 +35,34 @@ class SerenaClient:
         Args:
             project_path: 项目路径,如果为 None 则使用当前工作目录
         """
+        _check_serena_available()
+
         if project_path is None:
             project_path = str(Path.cwd())
 
-        self.agent = SerenaAgent(project=project_path)
         self.project_path = project_path
 
-    def get_tool(self, tool_class: type[Tool]) -> Tool:
-        """获取工具实例"""
-        return self.agent.get_tool(tool_class)
+    def _run_async(self, coro):
+        """在同步上下文中运行异步协程"""
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+
+        if loop and loop.is_running():
+            # 已在异步上下文中，创建新线程运行
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as pool:
+                future = pool.submit(asyncio.run, coro)
+                return future.result()
+        else:
+            return asyncio.run(coro)
+
+    async def _get_client(self):
+        """获取 SerenaStdioClient 实例"""
+        from .serena_stdio_client import SerenaStdioClient
+
+        return SerenaStdioClient(project_path=self.project_path)
 
     def find_symbol(
         self,
@@ -73,18 +83,16 @@ class SerenaClient:
         Returns:
             查找结果字典
         """
-        tool = self.get_tool(FindSymbolTool)
+        async def _find():
+            async with await self._get_client() as client:
+                return await client.find_symbol(
+                    name_path_pattern,
+                    relative_path=relative_path,
+                    depth=depth,
+                    include_body=include_body,
+                )
 
-        args: dict[str, Any] = {"name_path_pattern": name_path_pattern}
-        if relative_path is not None:
-            args["relative_path"] = relative_path
-        if depth > 0:
-            args["depth"] = depth
-        if include_body:
-            args["include_body"] = True
-
-        result = self.agent.execute_task(lambda: tool.apply(**args))
-        return json.loads(result)
+        return self._run_async(_find())
 
     def find_referencing_symbols(
         self,
@@ -105,19 +113,16 @@ class SerenaClient:
         Returns:
             引用列表
         """
-        tool = self.get_tool(FindReferencingSymbolsTool)
+        async def _find_refs():
+            async with await self._get_client() as client:
+                return await client.find_referencing_symbols(
+                    name_path,
+                    relative_path,
+                    include_kinds=include_kinds,
+                    exclude_kinds=exclude_kinds,
+                )
 
-        args: dict[str, Any] = {
-            "name_path": name_path,
-            "relative_path": relative_path,
-        }
-        if include_kinds is not None:
-            args["include_kinds"] = include_kinds
-        if exclude_kinds is not None:
-            args["exclude_kinds"] = exclude_kinds
-
-        result = self.agent.execute_task(lambda: tool.apply(**args))
-        return json.loads(result)
+        return self._run_async(_find_refs())
 
     def get_symbols_overview(
         self,
@@ -134,14 +139,11 @@ class SerenaClient:
         Returns:
             符号概览字典
         """
-        tool = self.get_tool(GetSymbolsOverviewTool)
+        async def _overview():
+            async with await self._get_client() as client:
+                return await client.get_symbols_overview(relative_path, depth=depth)
 
-        args: dict[str, Any] = {"relative_path": relative_path}
-        if depth > 0:
-            args["depth"] = depth
-
-        result = self.agent.execute_task(lambda: tool.apply(**args))
-        return json.loads(result)
+        return self._run_async(_overview())
 
     def search_for_pattern(
         self,
@@ -168,24 +170,19 @@ class SerenaClient:
         Returns:
             搜索结果字典
         """
-        tool = self.get_tool(SearchForPatternTool)
+        async def _search():
+            async with await self._get_client() as client:
+                return await client.search_for_pattern(
+                    substring_pattern,
+                    relative_path=relative_path,
+                    paths_include_glob=paths_include_glob,
+                    paths_exclude_glob=paths_exclude_glob,
+                    context_lines_before=context_lines_before,
+                    context_lines_after=context_lines_after,
+                    restrict_search_to_code_files=restrict_search_to_code_files,
+                )
 
-        args: dict[str, Any] = {"substring_pattern": substring_pattern}
-        if relative_path is not None:
-            args["relative_path"] = relative_path
-        if paths_include_glob is not None:
-            args["paths_include_glob"] = paths_include_glob
-        if paths_exclude_glob is not None:
-            args["paths_exclude_glob"] = paths_exclude_glob
-        if context_lines_before > 0:
-            args["context_lines_before"] = context_lines_before
-        if context_lines_after > 0:
-            args["context_lines_after"] = context_lines_after
-        if restrict_search_to_code_files:
-            args["restrict_search_to_code_files"] = True
-
-        result = self.agent.execute_task(lambda: tool.apply(**args))
-        return json.loads(result)
+        return self._run_async(_search())
 
     def find_file(self, file_mask: str, relative_path: str = ".") -> dict[str, Any]:
         """
@@ -198,10 +195,11 @@ class SerenaClient:
         Returns:
             查找结果字典
         """
-        tool = self.get_tool(FindFileTool)
+        async def _find_file():
+            async with await self._get_client() as client:
+                return await client.find_file(file_mask, relative_path)
 
-        result = self.agent.execute_task(lambda: tool.apply(file_mask=file_mask, relative_path=relative_path))
-        return json.loads(result)
+        return self._run_async(_find_file())
 
     def rename_symbol(
         self,
@@ -209,23 +207,8 @@ class SerenaClient:
         new_name: str,
         relative_path: str,
     ) -> dict[str, Any]:
-        """
-        重命名符号
-
-        Args:
-            name_path: 符号的完整路径
-            new_name: 新名称
-            relative_path: 包含该符号的文件路径
-
-        Returns:
-            操作结果
-        """
-        tool = self.get_tool(RenameSymbolTool)
-
-        result = self.agent.execute_task(
-            lambda: tool.apply(name_path=name_path, new_name=new_name, relative_path=relative_path)
-        )
-        return json.loads(result)
+        """重命名符号（需要 SerenaBackend 支持）"""
+        raise NotImplementedError("rename_symbol requires direct Serena integration. Use SerenaStdioClient directly.")
 
     def replace_symbol_body(
         self,
@@ -233,28 +216,14 @@ class SerenaClient:
         body: str,
         relative_path: str,
     ) -> dict[str, Any]:
-        """
-        替换符号体
-
-        Args:
-            name_path: 符号的完整路径
-            body: 新的符号体
-            relative_path: 包含该符号的文件路径
-
-        Returns:
-            操作结果
-        """
-        tool = self.get_tool(ReplaceSymbolBodyTool)
-
-        result = self.agent.execute_task(
-            lambda: tool.apply(name_path=name_path, body=body, relative_path=relative_path)
-        )
-        return json.loads(result)
+        """替换符号体（需要 SerenaBackend 支持）"""
+        raise NotImplementedError("replace_symbol_body requires direct Serena integration. Use SerenaStdioClient directly.")
 
 
 def main():
     """主函数 - 演示如何使用 SerenaClient"""
     import argparse
+    import sys
 
     parser = argparse.ArgumentParser(description="Serena MCP 客户端工具")
     parser.add_argument("--project", type=str, help="项目路径", default=str(Path.cwd()))

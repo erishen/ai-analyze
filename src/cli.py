@@ -109,7 +109,7 @@ def _build_summary_results(p: Path, file_results: list) -> dict:
     }
 
 
-def _run_ast(project_path: str, output: Optional[str] = None, patterns=None):
+def _run_ast(project_path: str, output: Optional[str] = None, patterns=None, sarif: bool = False):
     """Run AST analysis via subprocess, filtering out excluded dirs."""
     p = Path(project_path).resolve()
 
@@ -164,6 +164,27 @@ def _run_ast(project_path: str, output: Optional[str] = None, patterns=None):
 
     output_path.write_text(json.dumps(raw_results, indent=2, ensure_ascii=False), encoding="utf-8")
 
+    # 保存到 SQLite
+    try:
+        from .data_store import AnalysisStore
+        store = AnalysisStore()
+        store.save(
+            project_name=p.name,
+            project_path=str(p),
+            analysis_type="ast",
+            result=raw_results,
+            metadata={"files_analyzed": len(file_results)},
+        )
+    except Exception as e:
+        print(f"Warning: failed to save to database: {e}", file=sys.stderr)
+
+    # SARIF 输出
+    if sarif:
+        from .sarif_report import write_sarif
+        sarif_path = output_path.with_suffix(".sarif")
+        write_sarif(raw_results, str(sarif_path), project_path=str(p))
+        print(f"SARIF report: {sarif_path}")
+
     summary = _build_summary_results(p, file_results)
 
     print(json.dumps({
@@ -181,13 +202,65 @@ def main():
     ast_p = sub.add_parser("ast", help="Run AST code structure analysis on a project")
     ast_p.add_argument("project_path", help="Path to the project to analyze")
     ast_p.add_argument("--output", "-o", help="Output JSON file path (default: auto-generated)")
+    ast_p.add_argument("--sarif", action="store_true", help="Also output SARIF format for GitHub Code Scanning")
     ast_p.add_argument("--patterns", nargs="+", default=["**/*.py", "**/*.js", "**/*.ts", "**/*.tsx", "**/*.jsx"],
                        help="File glob patterns to include (default: **/*.py, **/*.js, **/*.ts, **/*.tsx, **/*.jsx)")
+
+    # serve 子命令
+    serve_p = sub.add_parser("serve", help="Start MCP server for AI agent integration")
+    serve_p.add_argument("--transport", choices=["stdio", "sse"], default="stdio",
+                         help="Transport protocol (default: stdio)")
+    serve_p.add_argument("--host", default="0.0.0.0", help="Host for SSE transport (default: 0.0.0.0)")
+    serve_p.add_argument("--port", type=int, default=8000, help="Port for SSE transport (default: 8000)")
+
+    # history 子命令
+    hist_p = sub.add_parser("history", help="View analysis history")
+    hist_p.add_argument("project_name", help="Project name to query")
+    hist_p.add_argument("--type", dest="analysis_type", help="Filter by analysis type")
+    hist_p.add_argument("--limit", type=int, default=10, help="Max records (default: 10)")
+
+    # trend 子命令
+    trend_p = sub.add_parser("trend", help="View metric trends over time")
+    trend_p.add_argument("project_name", help="Project name")
+    trend_p.add_argument("--metric", required=True, help="Metric path (e.g., summary.total_code_smells)")
+    trend_p.add_argument("--type", dest="analysis_type", default="ast", help="Analysis type (default: ast)")
+    trend_p.add_argument("--limit", type=int, default=20, help="Max data points (default: 20)")
+
+    # diff 子命令
+    diff_p = sub.add_parser("diff", help="Analyze PR diff for incremental quality assessment")
+    diff_p.add_argument("project_path", help="Path to the project")
+    diff_p.add_argument("--base", default="main", help="Base branch (default: main)")
+    diff_p.add_argument("--head", default="HEAD", help="Head branch (default: HEAD)")
 
     args = parser.parse_args()
 
     if args.command == "ast":
-        _run_ast(args.project_path, output=args.output, patterns=args.patterns)
+        _run_ast(args.project_path, output=args.output, patterns=args.patterns, sarif=args.sarif)
+    elif args.command == "serve":
+        from .mcp_server import main as mcp_main
+        mcp_main(transport=args.transport, host=args.host, port=args.port)
+    elif args.command == "history":
+        from .data_store import AnalysisStore
+        store = AnalysisStore()
+        records = store.get_latest(args.project_name, analysis_type=args.analysis_type, limit=args.limit)
+        print(json.dumps(records, indent=2, ensure_ascii=False, default=str))
+    elif args.command == "trend":
+        from .data_store import AnalysisStore
+        store = AnalysisStore()
+        trend = store.get_trend(args.project_name, args.analysis_type, args.metric, limit=args.limit)
+        print(json.dumps(trend, indent=2, ensure_ascii=False))
+    elif args.command == "diff":
+        from .pr_diff import analyze_pr_diff
+        from dataclasses import asdict
+        result = analyze_pr_diff(args.project_path, base=args.base, head=args.head)
+        output = {
+            "total_files": result.total_files,
+            "total_additions": result.total_additions,
+            "total_deletions": result.total_deletions,
+            "analysis_results": result.analysis_results,
+            "quality_assessment": result.quality_assessment,
+        }
+        print(json.dumps(output, indent=2, ensure_ascii=False))
 
 
 if __name__ == "__main__":
