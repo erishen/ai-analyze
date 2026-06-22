@@ -116,19 +116,19 @@ coverage:
 ## lint: 代码检查
 lint:
 	@echo -e "$(GREEN)运行代码检查...$(NC)"
-	@flake8 $(SRC_DIR)/ $(EXAMPLES_DIR)/ $(TESTS_DIR)/ --max-line-length=120
+	@ruff check $(SRC_DIR)/ $(EXAMPLES_DIR)/ $(TESTS_DIR)/
 	@echo -e "$(GREEN)✓ 代码检查完成$(NC)"
 
 ## format: 格式化代码
 format:
 	@echo -e "$(GREEN)格式化代码...$(NC)"
-	@black $(SRC_DIR)/ $(EXAMPLES_DIR)/ $(TESTS_DIR)/ --line-length=120
+	@ruff format $(SRC_DIR)/ $(EXAMPLES_DIR)/ $(TESTS_DIR)/
 	@echo -e "$(GREEN)✓ 代码格式化完成$(NC)"
 
 ## format-check: 检查代码格式（不修改）
 format-check:
 	@echo -e "$(GREEN)检查代码格式...$(NC)"
-	@black $(SRC_DIR)/ $(EXAMPLES_DIR)/ $(TESTS_DIR)/ --check --line-length=120
+	@ruff format --check $(SRC_DIR)/ $(EXAMPLES_DIR)/ $(TESTS_DIR)/
 	@echo -e "$(GREEN)✓ 代码格式检查完成$(NC)"
 
 ## type-check: 类型检查

@@ -164,8 +164,6 @@ class SerenaStdioClient:
             project_path: 项目路径,如果为 None 则使用当前工作目录
         """
         if project_path is None:
-            from pathlib import Path
-
             project_path = str(Path.cwd())
 
         # 构建 MCP 服务器启动命令

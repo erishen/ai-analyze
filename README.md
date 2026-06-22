@@ -238,12 +238,10 @@ Run `make help` to see all commands.
 
 ## 📖 Documentation
 
-- [Quick Start Guide](QUICK_START.md)
-- [AI-Enhanced Analysis](docs/AI_ENHANCED_ANALYSIS.md)
-- [Token Usage Analysis](docs/TOKEN_USAGE_ANALYSIS.md)
-- [Solution Comparison](docs/IDE_VS_SCRIPT_COMPARISON.md)
-- [Makefile Guide](docs/MAKEFILE_USAGE.md)
-- [Conda Setup](docs/CONDA_SETUP.md)
+- [Quick Start Guide](docs/QUICK_START.md)
+- [Feature Overview](docs/FEATURES.md)
+- [Optimization History](docs/OPTIMIZATION_HISTORY.md)
+- [Documentation Index](docs/INDEX.md)
 
 ## 🔌 MCP Server
 
@@ -412,7 +410,7 @@ make docker-build && make docker-run
 
 ## 🔧 Requirements
 
-- **Python**: 3.8+
+- **Python**: 3.9+
 - **Serena MCP**: Latest
 - **AI API**: DeepSeek API Key (or OpenAI-compatible)
 - **OS**: macOS, Linux, Windows (WSL)

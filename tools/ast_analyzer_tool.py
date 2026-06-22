@@ -188,7 +188,9 @@ class ASTAnalysisTool:
             # 从项目路径提取项目名
             project_name = self.project_path.name or "project"
             timestamp = now.strftime('%Y%m%d_%H%M%S')
-            output_path = f"ast_analysis_{project_name}_{timestamp}.json"
+            reports_dir = Path(__file__).resolve().parent.parent / "reports"
+            reports_dir.mkdir(exist_ok=True)
+            output_path = str(reports_dir / f"ast_analysis_{project_name}_{timestamp}.json")
 
         with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(results, f, indent=2, ensure_ascii=False)
@@ -206,7 +208,9 @@ class ASTAnalysisTool:
             # 从项目路径提取项目名
             project_name = self.project_path.name or "project"
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            output_path = f"ast_analysis_{project_name}_{timestamp}.md"
+            reports_dir = Path(__file__).resolve().parent.parent / "reports"
+            reports_dir.mkdir(exist_ok=True)
+            output_path = str(reports_dir / f"ast_analysis_{project_name}_{timestamp}.md")
 
         md_content = self._build_markdown_report(results)
 

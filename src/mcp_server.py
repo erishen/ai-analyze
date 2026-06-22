@@ -30,7 +30,7 @@ def _load_project_files(project_path: str, max_files: int = 500) -> dict[str, st
                 continue
             filepath = os.path.join(root, filename)
             try:
-                with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+                with open(filepath, "r", encoding="utf-8", errors="replace") as f:
                     files[filepath] = f.read()
             except OSError:
                 continue
@@ -75,14 +75,14 @@ def analyze_project(project_path: str, analysis_types: str = "all") -> str:
     }
 
     if "security" in types:
-        from src.security_scanner import SecurityScanner
+        from .security_scanner import SecurityScanner
 
         scanner = SecurityScanner()
         scan_result = scanner.scan_project(files)
         results["security"] = scan_result.to_dict()
 
     if "quality" in types:
-        from src.quality_score import QualityMetrics, QualityScorer
+        from .quality_score import QualityMetrics, QualityScorer
 
         scorer = QualityScorer()
         metrics = QualityMetrics(
@@ -91,13 +91,13 @@ def analyze_project(project_path: str, analysis_types: str = "all") -> str:
         results["quality"] = scorer.calculate_score(metrics).to_dict()
 
     if "dependency" in types:
-        from src.dependency_graph import DependencyAnalyzer
+        from .dependency_graph import DependencyAnalyzer
 
         analyzer = DependencyAnalyzer(project_path)
         results["dependency"] = analyzer.analyze_project(files).to_dict()
 
     if "ast" in types:
-        from src.ast_analyzer import ASTAnalyzerFactory, detect_language
+        from .ast_analyzer import ASTAnalyzerFactory, detect_language
 
         all_functions = 0
         all_classes = 0
@@ -223,7 +223,7 @@ def scan_security(project_path: str, max_findings: int = 100) -> str:
     if not files:
         return json.dumps({"error": "No source files found"})
 
-    from src.security_scanner import SecurityScanner
+    from .security_scanner import SecurityScanner
 
     scanner = SecurityScanner()
     result = scanner.scan_project(files, max_findings=max_findings)
@@ -244,7 +244,7 @@ def analyze_quality(project_path: str) -> str:
     if not files:
         return json.dumps({"error": "No source files found"})
 
-    from src.quality_score import QualityMetrics, QualityScorer
+    from .quality_score import QualityMetrics, QualityScorer
 
     total_loc = sum(len(c.split("\n")) for c in files.values())
 
@@ -252,7 +252,7 @@ def analyze_quality(project_path: str) -> str:
     code_smells_count = 0
     avg_complexity = 0.0
     try:
-        from src.ast_analyzer import ASTAnalyzerFactory, detect_language
+        from .ast_analyzer import ASTAnalyzerFactory, detect_language
 
         complexities = []
         for file_path in list(files.keys())[:50]:
@@ -299,7 +299,7 @@ def analyze_ast(file_path: str) -> str:
     if not path.is_file():
         return json.dumps({"error": f"Not a file: {file_path}"})
 
-    from src.ast_analyzer import ASTAnalyzerFactory, detect_language
+    from .ast_analyzer import ASTAnalyzerFactory, detect_language
 
     language = detect_language(str(path))
     if not language:
@@ -328,9 +328,9 @@ def detect_similarities(project_path: str, min_lines: int = 6, similarity_thresh
     if not files:
         return json.dumps({"error": "No source files found"})
 
-    from src.similarity import CodeBlock, SimilarityDetector
+    from .similarity import CodeBlock, SimilarityDetector
 
-    detector = SimilarityDetector(similarity_threshold=similarity_threshold)
+    detector = SimilarityDetector(min_block_size=min_lines)
 
     # Extract code blocks from files
     for file_path, content in files.items():
@@ -349,19 +349,19 @@ def detect_similarities(project_path: str, min_lines: int = 6, similarity_thresh
                     content=block_content,
                     language=language,
                 )
-                detector.add_block(block)
+                detector.add_code_block(block)
 
     # Detect duplicates and similar code
     duplicates = detector.find_duplicates()
     similar = detector.find_similar()
 
     result = {
-        "total_blocks": len(detector._blocks) if hasattr(detector, "_blocks") else 0,
+        "total_blocks": len(detector.code_blocks),
         "duplicates": [
             {
                 "blocks": [
-                    {"file": b.file_path, "start_line": b.start_line, "end_line": b.end_line}
-                    for b in pair.blocks
+                    {"file": pair.block1.file_path, "start_line": pair.block1.start_line, "end_line": pair.block1.end_line},
+                    {"file": pair.block2.file_path, "start_line": pair.block2.start_line, "end_line": pair.block2.end_line},
                 ],
                 "similarity": pair.similarity,
             }
@@ -370,8 +370,8 @@ def detect_similarities(project_path: str, min_lines: int = 6, similarity_thresh
         "similar_pairs": [
             {
                 "blocks": [
-                    {"file": b.file_path, "start_line": b.start_line, "end_line": b.end_line}
-                    for b in pair.blocks
+                    {"file": pair.block1.file_path, "start_line": pair.block1.start_line, "end_line": pair.block1.end_line},
+                    {"file": pair.block2.file_path, "start_line": pair.block2.start_line, "end_line": pair.block2.end_line},
                 ],
                 "similarity": pair.similarity,
             }
@@ -395,7 +395,7 @@ def analyze_dependencies(project_path: str) -> str:
     if not files:
         return json.dumps({"error": "No source files found"})
 
-    from src.dependency_graph import DependencyAnalyzer
+    from .dependency_graph import DependencyAnalyzer
 
     analyzer = DependencyAnalyzer(project_path)
     result = analyzer.analyze_project(files)

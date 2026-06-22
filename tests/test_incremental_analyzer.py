@@ -46,7 +46,7 @@ class TestIncrementalAnalyzer:
             with open(test_file, "w") as f:
                 f.write("print('hello')")
             h = analyzer.get_file_hash(test_file)
-            assert len(h) == 32
+            assert len(h) == 64
 
     def test_get_file_hash_nonexistent(self):
         with tempfile.TemporaryDirectory() as tmpdir:

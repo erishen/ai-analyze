@@ -156,7 +156,9 @@ def _run_ast(project_path: str, output: Optional[str] = None, patterns=None):
             print(f"Warning: failed to analyze {file_path}: {e}", file=sys.stderr)
             continue
 
-    output_path = p / f"ast_analysis_{p.name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    reports_dir = Path(__file__).resolve().parent.parent / "reports"
+    reports_dir.mkdir(exist_ok=True)
+    output_path = reports_dir / f"ast_analysis_{p.name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
     if output:
         output_path = Path(output)
 

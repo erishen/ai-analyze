@@ -21,7 +21,7 @@ class ReportMetadata:
     project_name: str
     report_type: str
     timestamp: str = ""
-    version: str = "0.2.0"
+    version: str = "0.3.0"
 
     def __post_init__(self) -> None:
         if not self.timestamp:

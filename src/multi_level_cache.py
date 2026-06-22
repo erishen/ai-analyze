@@ -212,8 +212,8 @@ class FileCacheBackend(CacheBackend):
         return False
 
     def exists(self, key: str) -> bool:
-        entry = self.get(key)
-        return entry is not None
+        path = self._key_to_path(key)
+        return path.exists()
 
     def clear(self) -> int:
         count = 0
@@ -348,10 +348,11 @@ class RedisCacheBackend(CacheBackend):
         if not self._client:
             return 0
         try:
-            keys = self._client.keys(f"{self._prefix}*")
-            if keys:
-                return self._client.delete(*keys)
-            return 0
+            count = 0
+            for key in self._client.scan_iter(f"{self._prefix}*"):
+                self._client.delete(key)
+                count += 1
+            return count
         except Exception:
             return 0
 
@@ -370,8 +371,7 @@ class RedisCacheBackend(CacheBackend):
             try:
                 info = self._client.info("memory")
                 result["used_memory_mb"] = info.get("used_memory", 0) / (1024 * 1024)
-                keys = self._client.keys(f"{self._prefix}*")
-                result["key_count"] = len(keys)
+                result["key_count"] = sum(1 for _ in self._client.scan_iter(f"{self._prefix}*"))
             except Exception:
                 pass
         return result
@@ -519,9 +519,9 @@ class MultiLevelCache:
                     count += 1
             elif isinstance(backend, RedisCacheBackend) and backend.available and backend._client is not None:
                 try:
-                    keys = backend._client.keys(f"{backend._prefix}*{pattern}*")  # type: ignore[union-attr]
-                    if keys:
-                        count += backend._client.delete(*keys)  # type: ignore[union-attr]
+                    for key in backend._client.scan_iter(f"{backend._prefix}*{pattern}*"):  # type: ignore[union-attr]
+                        backend._client.delete(key)  # type: ignore[union-attr]
+                        count += 1
                 except Exception:
                     pass
         return count

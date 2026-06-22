@@ -305,7 +305,7 @@ class CacheWarmer:
             if f.is_file() and (lang := ext_to_lang.get(f.suffix.lower())):
                 try:
                     stats[lang] = stats.get(lang, 0) + 1
-                    with open(f, "r", encoding="utf-8", errors="ignore") as fh:
+                    with open(f, "r", encoding="utf-8", errors="replace") as fh:
                         total_lines += sum(1 for _ in fh)
                 except Exception:
                     pass

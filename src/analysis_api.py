@@ -149,31 +149,31 @@ class AnalysisAPIService:
             files = self._load_project_files(request.project_path)
 
             if "security" in analysis_types:
-                from src.security_scanner import SecurityScanner
+                from .security_scanner import SecurityScanner
 
                 scanner = SecurityScanner()
                 results["security"] = scanner.scan_project(files).to_dict()
 
             if "performance" in analysis_types:
-                from src.performance_analyzer import PerformanceAnalyzer
+                from .performance_analyzer import PerformanceAnalyzer
 
                 analyzer = PerformanceAnalyzer()
                 results["performance"] = analyzer.analyze_project(files).to_dict()
 
             if "tech_debt" in analysis_types:
-                from src.tech_debt import TechDebtAnalyzer
+                from .tech_debt import TechDebtAnalyzer
 
                 analyzer = TechDebtAnalyzer()
                 results["tech_debt"] = analyzer.analyze_project(files).to_dict()
 
             if "dependency" in analysis_types:
-                from src.dependency_graph import DependencyAnalyzer
+                from .dependency_graph import DependencyAnalyzer
 
                 analyzer = DependencyAnalyzer(request.project_path)
                 results["dependency"] = analyzer.analyze_project(files).to_dict()
 
             if "quality" in analysis_types:
-                from src.quality_score import QualityScorer, QualityMetrics
+                from .quality_score import QualityScorer, QualityMetrics
 
                 scorer = QualityScorer()
                 metrics = QualityMetrics(
@@ -218,7 +218,7 @@ class AnalysisAPIService:
                     continue
                 filepath = os.path.join(root, filename)
                 try:
-                    with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+                    with open(filepath, "r", encoding="utf-8", errors="replace") as f:
                         files[filepath] = f.read()
                 except OSError:
                     continue
@@ -237,7 +237,7 @@ class AnalysisAPIService:
 
         app = FastAPI(
             title="AI-Analyze API",
-            version="0.2.0",
+            version="0.3.0",
             description="Code analysis API service",
         )
         service = self
