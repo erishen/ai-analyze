@@ -8,7 +8,7 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-from src.pr_diff import (
+from src.tools.pr_diff import (
     parse_git_diff,
     DiffHunk,
     FileDiff,

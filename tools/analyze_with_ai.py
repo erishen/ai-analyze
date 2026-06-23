@@ -99,9 +99,9 @@ def main():
     if not os.getenv("OPENAI_API_KEY"):
         print("⚠️  警告: 未设置 OPENAI_API_KEY，AI 分析将不可用")
         print("   请在 ai-analyze/.env 文件中添加:")
-        print("   OPENAI_API_KEY=your_deepseek_api_key")
-        print("   OPENAI_BASE_URL=https://api.deepseek.com")
-        print("   OPENAI_MODEL=deepseek-chat")
+        print("   OPENAI_API_KEY=your_api_key")
+        print("   OPENAI_MODEL=openai/gpt-4")
+        print("   # 或其他提供商: deepseek/deepseek-chat, anthropic/claude-3-sonnet")
 
     if args.ai_only:
         # 仅 AI 模式

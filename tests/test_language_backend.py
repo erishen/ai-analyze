@@ -6,13 +6,13 @@ LanguageBackend 系统测试
 import pytest
 from pathlib import Path
 
-from src.language_backend import (
+from src.backends.language_backend import (
     LanguageBackend,
     TreeSitterBackend,
     SerenaBackend,
     BackendFactory,
 )
-from src.ast_analyzer import Language
+from src.analyzers.ast_analyzer import Language
 
 
 class TestTreeSitterBackend:

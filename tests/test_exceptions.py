@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.exceptions import (
+from src.infrastructure.exceptions import (
     AIAnalyzeException,
     AnalysisException,
     SerenaAnalysisException,

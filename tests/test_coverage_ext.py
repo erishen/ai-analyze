@@ -8,13 +8,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.similarity import (  # noqa: E402
+from src.analyzers.similarity import (  # noqa: E402
     CodeBlock, SimilarityDetector, SimilarityResult,
 )
-from src.quality_score import (  # noqa: E402
+from src.analyzers.quality_score import (  # noqa: E402
     QualityScorer, QualityMetrics, QualityScore,
 )
-from src.ast_analyzer import (  # noqa: E402
+from src.analyzers.ast_analyzer import (  # noqa: E402
     BatchASTAnalyzer, PythonASTAnalyzer, detect_language,
 )
 

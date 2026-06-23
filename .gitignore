@@ -45,10 +45,15 @@ env/
 Thumbs.db
 
 archive/
-reports/
+/reports/
 .serena
 .cache
 .pytest_cache
+.ruff_cache/
+
+# 运行时生成
+logs/
+.analysis_data/
 
 # 测试覆盖率
 .coverage

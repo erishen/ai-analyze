@@ -1,7 +1,7 @@
 """Tests for similarity module - CodeBlock, SimilarityResult, SimilarityDetector"""
 
 
-from src.similarity import CodeBlock, SimilarityResult, SimilarityDetector
+from src.analyzers.similarity import CodeBlock, SimilarityResult, SimilarityDetector
 
 
 class TestCodeBlock:

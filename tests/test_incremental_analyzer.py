@@ -3,7 +3,7 @@
 import tempfile
 import os
 
-from src.incremental_analyzer import IncrementalAnalyzer, FileHash, CacheMetadata
+from src.infrastructure.incremental_analyzer import IncrementalAnalyzer, FileHash, CacheMetadata
 
 
 class TestFileHash:

@@ -10,10 +10,10 @@ from pathlib import Path
 from typing import Optional
 
 
-for name in ("src.ast_rules", "src.tech_debt", "src.quality_score", "src.security_scanner", "src"):
+for name in ("src.analyzers.ast_rules", "src.analyzers.tech_debt", "src.analyzers.quality_score", "src.analyzers.security_scanner", "src"):
     logging.getLogger(name).setLevel(logging.WARNING)
 
-_SCRIPT = Path(__file__).resolve().parent.parent / "tools" / "ast_analyzer_tool.py"
+_SCRIPT = Path(__file__).resolve().parent.parent.parent / "tools" / "ast_analyzer_tool.py"
 
 EXCLUDE_DIRS = {".venv", "venv", "__pycache__", ".git", "node_modules", ".ruff_cache", ".mypy_cache", ".pytest_cache", ".cache", "htmlcov", ".eggs"}
 
@@ -129,7 +129,7 @@ def _run_ast(project_path: str, output: Optional[str] = None, patterns=None, sar
         print(json.dumps({"error": "No files found to analyze"}, indent=2))
         return
 
-    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
     from tools.ast_analyzer_tool import ASTAnalysisTool  # noqa: E402
 
     tool = ASTAnalysisTool(str(p))
@@ -156,7 +156,7 @@ def _run_ast(project_path: str, output: Optional[str] = None, patterns=None, sar
             print(f"Warning: failed to analyze {file_path}: {e}", file=sys.stderr)
             continue
 
-    reports_dir = Path(__file__).resolve().parent.parent / "reports"
+    reports_dir = Path(__file__).resolve().parent.parent.parent / "reports"
     reports_dir.mkdir(exist_ok=True)
     output_path = reports_dir / f"ast_analysis_{p.name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
     if output:
@@ -164,10 +164,12 @@ def _run_ast(project_path: str, output: Optional[str] = None, patterns=None, sar
 
     output_path.write_text(json.dumps(raw_results, indent=2, ensure_ascii=False), encoding="utf-8")
 
-    # 保存到 SQLite
+    # 保存到 SQLite（包含 summary）
     try:
         from .data_store import AnalysisStore
         store = AnalysisStore()
+        summary = _build_summary_results(p, file_results)
+        raw_results["summary"] = summary
         store.save(
             project_name=p.name,
             project_path=str(p),
@@ -180,7 +182,7 @@ def _run_ast(project_path: str, output: Optional[str] = None, patterns=None, sar
 
     # SARIF 输出
     if sarif:
-        from .sarif_report import write_sarif
+        from ..reports.sarif_report import write_sarif
         sarif_path = output_path.with_suffix(".sarif")
         write_sarif(raw_results, str(sarif_path), project_path=str(p))
         print(f"SARIF report: {sarif_path}")
@@ -237,7 +239,7 @@ def main():
     if args.command == "ast":
         _run_ast(args.project_path, output=args.output, patterns=args.patterns, sarif=args.sarif)
     elif args.command == "serve":
-        from .mcp_server import main as mcp_main
+        from ..server.mcp_server import main as mcp_main
         mcp_main(transport=args.transport, host=args.host, port=args.port)
     elif args.command == "history":
         from .data_store import AnalysisStore

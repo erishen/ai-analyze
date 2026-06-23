@@ -13,12 +13,12 @@ import logging
 # 添加项目根目录到路径
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.ast_analyzer import (  # noqa: E402
+from src.analyzers.ast_analyzer import (  # noqa: E402
     ASTAnalyzerFactory,
     detect_language,
     FileAnalysisResult,
 )
-from src.ast_visualizer import ASTVisualizer  # noqa: E402
+from src.reports.ast_visualizer import ASTVisualizer  # noqa: E402
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

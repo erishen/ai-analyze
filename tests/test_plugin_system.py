@@ -9,7 +9,7 @@ _project_root = str(Path(__file__).parent.parent)
 if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
-from src.plugin_system import (  # noqa: E402
+from src.tools.plugin_system import (  # noqa: E402
     PluginContext, PluginManager, PluginResult,
     PluginInfo, ComplexityHotspotPlugin, FileStatsPlugin,
 )
@@ -130,7 +130,7 @@ class TestPluginManager:
     def test_discover_plugins(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             plugin_code = (
-                "from src.plugin_system import AnalysisPlugin, PluginContext\n"
+                "from src.tools.plugin_system import AnalysisPlugin, PluginContext\n"
                 "from typing import Any, Dict\n\n"
                 "class DemoPlugin(AnalysisPlugin):\n"
                 "    plugin_name = 'demo'\n"

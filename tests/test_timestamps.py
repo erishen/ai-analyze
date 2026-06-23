@@ -12,7 +12,7 @@ from datetime import datetime
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from tools.ast_analyzer_tool import ASTAnalysisTool  # noqa: E402
-from src.analysis_integration import IntegratedAnalysisResult  # noqa: E402
+from src.server.analysis_integration import IntegratedAnalysisResult  # noqa: E402
 
 
 def test_ast_timestamps():

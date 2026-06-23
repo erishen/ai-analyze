@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 AI 增强代码分析器
-集成 deepseek API 进行深度代码分析
+基于 litellm 集成 100+ LLM 提供商进行深度代码分析
 """
 
 import os
@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 from dotenv import load_dotenv
-import openai
+from litellm import completion
 
 # 加载环境变量（从 ai-analyze 根目录）
 script_dir = Path(__file__).parent
@@ -25,18 +25,12 @@ class AIEnhancedAnalyzer:
     """AI 增强代码分析器"""
 
     def __init__(self, use_cache: bool = True, cache_ttl: int = 3600):
-        # 配置 deepseek API
+        # 配置 LLM（通过 litellm 支持 100+ 提供商）
         self.api_key = os.getenv("OPENAI_API_KEY")
-        self.base_url = os.getenv("OPENAI_BASE_URL", "https://api.deepseek.com")
-        self.model = os.getenv("OPENAI_MODEL", "deepseek-chat")
+        self.model = os.getenv("OPENAI_MODEL", "openai/gpt-4")
 
         if not self.api_key:
             raise ValueError("请设置 OPENAI_API_KEY 环境变量")
-
-        self.client = openai.OpenAI(
-            api_key=self.api_key,
-            base_url=self.base_url
-        )
 
         # 缓存配置
         self.use_cache = use_cache
@@ -68,7 +62,7 @@ class AIEnhancedAnalyzer:
 
         # 缓存未命中，调用 AI
         try:
-            response = self.client.chat.completions.create(
+            response = completion(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": "你是一位经验丰富的软件架构师和代码审查专家。请基于提供的代码分析数据，给出专业的代码质量评估和改进建议。"},
@@ -679,7 +673,7 @@ docker-compose up -d
 
         # 缓存未命中，调用 AI
         try:
-            response = self.client.chat.completions.create(
+            response = completion(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": "你是一位经验丰富的 DevOps 工程师和云原生架构师。请基于项目分析数据，给出专业的 Docker 部署策略、容器优化建议和最佳实践。"},
@@ -729,7 +723,7 @@ docker-compose up -d
 
         # 缓存未命中，调用 AI
         try:
-            response = self.client.chat.completions.create(
+            response = completion(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": "你是一位经验丰富的技术架构师，精通主流编程框架的版本升级、迁移策略和最佳实践。请基于项目分析数据，给出专业、谨慎的框架升级建议。"},

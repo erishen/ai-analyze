@@ -75,14 +75,14 @@ def analyze_project(project_path: str, analysis_types: str = "all") -> str:
     }
 
     if "security" in types:
-        from .security_scanner import SecurityScanner
+        from ..analyzers.security_scanner import SecurityScanner
 
         scanner = SecurityScanner()
         scan_result = scanner.scan_project(files)
         results["security"] = scan_result.to_dict()
 
     if "quality" in types:
-        from .quality_score import QualityMetrics, QualityScorer
+        from ..analyzers.quality_score import QualityMetrics, QualityScorer
 
         scorer = QualityScorer()
         metrics = QualityMetrics(
@@ -91,13 +91,13 @@ def analyze_project(project_path: str, analysis_types: str = "all") -> str:
         results["quality"] = scorer.calculate_score(metrics).to_dict()
 
     if "dependency" in types:
-        from .dependency_graph import DependencyAnalyzer
+        from ..analyzers.dependency_graph import DependencyAnalyzer
 
         analyzer = DependencyAnalyzer(project_path)
         results["dependency"] = analyzer.analyze_project(files).to_dict()
 
     if "ast" in types:
-        from .language_backend import BackendFactory
+        from ..backends.language_backend import BackendFactory
 
         backend = BackendFactory.create()
 
@@ -219,7 +219,7 @@ def scan_security(project_path: str, max_findings: int = 100) -> str:
     if not files:
         return json.dumps({"error": "No source files found"})
 
-    from .security_scanner import SecurityScanner
+    from ..analyzers.security_scanner import SecurityScanner
 
     scanner = SecurityScanner()
     result = scanner.scan_project(files, max_findings=max_findings)
@@ -240,7 +240,7 @@ def analyze_quality(project_path: str) -> str:
     if not files:
         return json.dumps({"error": "No source files found"})
 
-    from .quality_score import QualityMetrics, QualityScorer
+    from ..analyzers.quality_score import QualityMetrics, QualityScorer
 
     total_loc = sum(len(c.split("\n")) for c in files.values())
 
@@ -248,7 +248,7 @@ def analyze_quality(project_path: str) -> str:
     code_smells_count = 0
     avg_complexity = 0.0
     try:
-        from .language_backend import BackendFactory
+        from ..backends.language_backend import BackendFactory
 
         backend = BackendFactory.create()
 
@@ -318,7 +318,7 @@ def detect_similarities(project_path: str, min_lines: int = 6, similarity_thresh
     if not files:
         return json.dumps({"error": "No source files found"})
 
-    from .similarity import CodeBlock, SimilarityDetector
+    from ..analyzers.similarity import CodeBlock, SimilarityDetector
 
     detector = SimilarityDetector(min_block_size=min_lines)
 
@@ -342,8 +342,8 @@ def detect_similarities(project_path: str, min_lines: int = 6, similarity_thresh
                 detector.add_code_block(block)
 
     # Detect duplicates and similar code
-    duplicates = detector.find_duplicates()
-    similar = detector.find_similar()
+    duplicates = detector.detect_duplicates()
+    similar = detector.detect_similar()
 
     result = {
         "total_blocks": len(detector.code_blocks),
@@ -385,7 +385,7 @@ def analyze_dependencies(project_path: str) -> str:
     if not files:
         return json.dumps({"error": "No source files found"})
 
-    from .dependency_graph import DependencyAnalyzer
+    from ..analyzers.dependency_graph import DependencyAnalyzer
 
     analyzer = DependencyAnalyzer(project_path)
     result = analyzer.analyze_project(files)

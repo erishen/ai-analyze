@@ -13,8 +13,8 @@ _project_root = str(Path(__file__).parent.parent)
 if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
-from src.multi_level_cache import MultiLevelCache  # noqa: E402
-from src.cache_warmer import CacheWarmer, WarmupTask, WarmupResult  # noqa: E402
+from src.infrastructure.multi_level_cache import MultiLevelCache  # noqa: E402
+from src.infrastructure.cache_warmer import CacheWarmer, WarmupTask, WarmupResult  # noqa: E402
 
 
 # ==================== WarmupTask 测试 ====================

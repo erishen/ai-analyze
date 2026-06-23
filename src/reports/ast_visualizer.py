@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 import logging
 
-from .ast_analyzer import (
+from ..analyzers.ast_analyzer import (
     ClassInfo,
     CodeSmell,
     ComplexityMetrics,

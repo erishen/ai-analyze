@@ -122,7 +122,7 @@ LANGUAGES_CONFIG = {
 }
 
 # 导入 Serena 客户端
-from src.serena_stdio_client import SerenaStdioClient
+from src.backends.serena_stdio_client import SerenaStdioClient
 
 async def extract_file_paths(find_result):
     """从 find_file 结果中提取文件路径列表"""

@@ -28,8 +28,8 @@ if str(ai_analyze_root) not in sys.path:
 load_dotenv(ai_analyze_root / '.env')
 
 # 导入统一分析器
-from src.unified_analyzer import UnifiedAnalyzer
-from src.incremental_analyzer import IncrementalAnalyzer
+from src.tools.unified_analyzer import UnifiedAnalyzer
+from src.infrastructure.incremental_analyzer import IncrementalAnalyzer
 
 
 def confirm(prompt: str, yes_mode: bool = False) -> bool:
@@ -216,7 +216,7 @@ async def run_integrated_analysis(
             unified_analysis = json.load(f)
 
         # 创建集成分析器
-        from src.analysis_integration import AnalysisIntegrator
+        from src.server.analysis_integration import AnalysisIntegrator
         integrator = AnalysisIntegrator(project_path)
 
         # 运行集成分析

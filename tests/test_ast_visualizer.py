@@ -10,14 +10,14 @@ from pathlib import Path
 # 添加项目路径
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.ast_analyzer import (  # noqa: E402
+from src.analyzers.ast_analyzer import (  # noqa: E402
     ClassInfo,
     CodeSmell,
     ComplexityMetrics,
     FileAnalysisResult,
     FunctionInfo,
 )
-from src.ast_visualizer import ASTVisualizer  # noqa: E402
+from src.reports.ast_visualizer import ASTVisualizer  # noqa: E402
 
 
 class TestASTVisualizer(unittest.TestCase):

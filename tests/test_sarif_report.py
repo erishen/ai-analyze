@@ -6,7 +6,7 @@ SARIF 输出格式测试
 import json
 from pathlib import Path
 
-from src.sarif_report import analysis_to_sarif, write_sarif, SARIF_VERSION, SARIF_SCHEMA
+from src.reports.sarif_report import analysis_to_sarif, write_sarif, SARIF_VERSION, SARIF_SCHEMA
 
 
 class TestSarifFormat:

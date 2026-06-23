@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from src.analysis_integration import IntegratedAnalysisResult, AnalysisIntegrator
+from src.server.analysis_integration import IntegratedAnalysisResult, AnalysisIntegrator
 
 
 class TestIntegratedAnalysisResult:

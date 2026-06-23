@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 
-from .language_backend import BackendFactory
+from ..backends.language_backend import BackendFactory
 
 logger = logging.getLogger(__name__)
 
@@ -234,6 +234,18 @@ def analyze_pr_diff(
         ".cpp", ".cc", ".c", ".h", ".rs", ".rb", ".php",
     }
 
+    # 获取 git 仓库根目录，用于拼接 diff 中的相对路径
+    try:
+        git_root = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            cwd=project_path,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        git_root = project_path
+
     backend = BackendFactory.create(project_path, backend_name=backend_name)
 
     for file_diff in file_diffs:
@@ -244,7 +256,7 @@ def analyze_pr_diff(
         if ext not in analyzable_extensions:
             continue
 
-        full_path = os.path.join(project_path, file_diff.file_path)
+        full_path = os.path.join(git_root, file_diff.file_path)
         if not os.path.exists(full_path):
             continue
 

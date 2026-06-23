@@ -10,8 +10,8 @@ from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 from datetime import datetime
 
-from .similarity import SimilarityDetector, CodeBlock
-from .quality_score import QualityScorer, QualityMetrics
+from ..analyzers.similarity import SimilarityDetector, CodeBlock
+from ..analyzers.quality_score import QualityScorer, QualityMetrics
 
 
 @dataclass

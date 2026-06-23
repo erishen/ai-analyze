@@ -20,14 +20,14 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.ast_analyzer import (  # noqa: E402
+from src.analyzers.ast_analyzer import (  # noqa: E402
     CodeSmell,
     FunctionInfo,
     PythonASTAnalyzer,
 )
-from src.benchmark import Benchmark  # noqa: E402
-from src.unified_analyzer import UnifiedAnalyzer  # noqa: E402
-from src.quality_score import QualityScorer, QualityMetrics  # noqa: E402
+from src.infrastructure.benchmark import Benchmark  # noqa: E402
+from src.tools.unified_analyzer import UnifiedAnalyzer  # noqa: E402
+from src.analyzers.quality_score import QualityScorer, QualityMetrics  # noqa: E402
 
 
 # ============================================================

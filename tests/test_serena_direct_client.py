@@ -11,7 +11,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from src.serena_client import SerenaClient, _check_serena_available
+from src.backends.serena_client import SerenaClient, _check_serena_available
 
 
 # ==================== _check_serena_available 测试 ====================
@@ -47,19 +47,19 @@ class TestSerenaClientInit:
 
     def test_init_without_serena_dir_raises(self):
         """SERENA_DIR 未设置时初始化抛出 ImportError"""
-        with patch("src.serena_client._check_serena_available", side_effect=ImportError("serena 未安装")):
+        with patch("src.backends.serena_client._check_serena_available", side_effect=ImportError("serena 未安装")):
             with pytest.raises(ImportError, match="serena 未安装"):
                 SerenaClient(project_path="/test")
 
     def test_init_with_valid_serena_dir(self):
         """有效 SERENA_DIR 时初始化成功"""
-        with patch("src.serena_client._check_serena_available"):
+        with patch("src.backends.serena_client._check_serena_available"):
             client = SerenaClient(project_path="/test")
             assert client.project_path == "/test"
 
     def test_init_default_project_path(self):
         """测试默认项目路径"""
-        with patch("src.serena_client._check_serena_available"):
+        with patch("src.backends.serena_client._check_serena_available"):
             with patch.object(Path, "cwd", return_value=Path("/my/project")):
                 client = SerenaClient()
                 assert client.project_path == "/my/project"
@@ -74,7 +74,7 @@ class TestSerenaClientMCPProtocol:
     @pytest.fixture
     def client(self):
         """创建测试用客户端"""
-        with patch("src.serena_client._check_serena_available"):
+        with patch("src.backends.serena_client._check_serena_available"):
             return SerenaClient(project_path="/test")
 
     def test_find_symbol(self, client):
@@ -149,7 +149,7 @@ class TestSerenaClientRunAsync:
 
     @pytest.fixture
     def client(self):
-        with patch("src.serena_client._check_serena_available"):
+        with patch("src.backends.serena_client._check_serena_available"):
             return SerenaClient(project_path="/test")
 
     def test_run_async_in_sync_context(self, client):

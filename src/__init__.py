@@ -26,12 +26,6 @@ __all__ = [
     "BackendFactory",
 ]
 
-from .ast_analyzer import ASTAnalyzerFactory, detect_language
-from .security_scanner import SecurityScanner
-from .quality_score import QualityScorer, QualityMetrics
-from .dependency_graph import DependencyAnalyzer
-from .similarity import SimilarityDetector, CodeBlock
-from .multi_level_cache import MultiLevelCache
-from .config import ConfigManager
-from .logger import UnifiedLogger
-from .language_backend import LanguageBackend, TreeSitterBackend, SerenaBackend, BackendFactory
+from .analyzers import ASTAnalyzerFactory, detect_language, SecurityScanner, QualityScorer, QualityMetrics, SimilarityDetector, CodeBlock, DependencyAnalyzer
+from .backends import BackendFactory, LanguageBackend, TreeSitterBackend, SerenaBackend
+from .infrastructure import ConfigManager, UnifiedLogger, MultiLevelCache

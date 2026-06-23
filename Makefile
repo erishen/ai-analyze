@@ -1,7 +1,6 @@
 # Makefile for AI-Analyze
-# 优化版本 - 删除了无用和冗余的命令
 
-.PHONY: help init check-env test clean clean-reports clean-target lint format format-check ci-verify uv-install uv-sync uv-shell install-dev type-check debug version analyze-full analyze-full-serena analyze-full-skip-ai analyze-full-skip-docker analyze-full-skip-ast analyze-full-force analyze-full-no-cache analyze-full-custom-ttl analyze-ast analyze-ast-md docker-check docker-generate docker-build docker-run docker-verify docker-all docker-compose-up docker-compose-down cache-clear cache-clear-project cache-list
+.PHONY: help init test clean lint format format-check ci-verify uv-install uv-sync install-dev type-check debug version analyze-ast analyze-ast-md docker-check docker-generate clean-target clean-reports cache-clear cache-list coverage
 
 # 默认目标
 .DEFAULT_GOAL := help
@@ -32,8 +31,6 @@ endif
 
 # 目录路径
 SRC_DIR := src
-DOCS_DIR := docs
-EXAMPLES_DIR := examples
 TESTS_DIR := tests
 SCRIPTS_DIR := scripts
 
@@ -53,25 +50,6 @@ init:
 		echo -e "$(YELLOW)⚠ .env 文件已存在$(NC)"; \
 	fi
 
-## check-env: 检查环境变量配置
-check-env:
-	@echo -e "$(GREEN)检查环境变量配置...$(NC)"
-	@if [ -z "$CI" ]; then \
-		if [ ! -f .env ]; then \
-			echo -e "$(YELLOW)⚠ .env 文件不存在，请先创建: make init$(NC)"; \
-			exit 1; \
-		fi; \
-	fi
-	@if [ -z "$OPENAI_API_KEY" ]; then \
-		echo -e "$(YELLOW)⚠ OPENAI_API_KEY 未设置$(NC)"; \
-		exit 1; \
-	fi
-	@if [ -z "$PROJECT_PATH" ]; then \
-		echo -e "$(YELLOW)⚠ PROJECT_PATH 未设置$(NC)"; \
-		exit 1; \
-	fi
-	@echo -e "$(GREEN)✓ 环境变量配置正确$(NC)"
-
 ## uv-install: 使用 uv 安装依赖（推荐）
 uv-install:
 	@echo -e "$(GREEN)🚀 使用 uv 安装依赖...$(NC)"
@@ -90,11 +68,6 @@ uv-sync:
 	@echo -e "$(GREEN)🔄 同步 uv 依赖...$(NC)"
 	@uv sync
 	@echo -e "$(GREEN)✓ 依赖同步完成$(NC)"
-
-## uv-shell: 进入 uv 虚拟环境
-uv-shell:
-	@echo -e "$(GREEN)🐚 进入 uv 虚拟环境...$(NC)"
-	@uv shell
 
 ## install-dev: 安装开发依赖
 install-dev:
@@ -116,19 +89,19 @@ coverage:
 ## lint: 代码检查
 lint:
 	@echo -e "$(GREEN)运行代码检查...$(NC)"
-	@ruff check $(SRC_DIR)/ $(EXAMPLES_DIR)/ $(TESTS_DIR)/
+	@ruff check $(SRC_DIR)/ $(TESTS_DIR)/
 	@echo -e "$(GREEN)✓ 代码检查完成$(NC)"
 
 ## format: 格式化代码
 format:
 	@echo -e "$(GREEN)格式化代码...$(NC)"
-	@ruff format $(SRC_DIR)/ $(EXAMPLES_DIR)/ $(TESTS_DIR)/
+	@ruff format $(SRC_DIR)/ $(TESTS_DIR)/
 	@echo -e "$(GREEN)✓ 代码格式化完成$(NC)"
 
 ## format-check: 检查代码格式（不修改）
 format-check:
 	@echo -e "$(GREEN)检查代码格式...$(NC)"
-	@ruff format --check $(SRC_DIR)/ $(EXAMPLES_DIR)/ $(TESTS_DIR)/
+	@ruff format --check $(SRC_DIR)/ $(TESTS_DIR)/
 	@echo -e "$(GREEN)✓ 代码格式检查完成$(NC)"
 
 ## type-check: 类型检查
@@ -198,50 +171,6 @@ version:
 	@echo -e "Python: $($(PYTHON) --version)"
 	@echo -e "Pip: $($(PIP) --version)"
 
-## analyze-full: 一键完整分析（Serena + AI + Docker）
-analyze-full:
-	@echo -e "$(GREEN)🚀 一键完整分析（Serena + AI + Docker）...$(NC)"
-	@$(PYTHON) tools/full_analyzer.py --yes
-
-## analyze-full-serena: 只运行 Serena 分析
-analyze-full-serena:
-	@echo -e "$(GREEN)🔍 只运行 Serena 分析...$(NC)"
-	@$(PYTHON) tools/full_analyzer.py --serena-only --yes
-
-## analyze-full-skip-ai: 跳过 AI 分析，只运行 Serena + Docker
-analyze-full-skip-ai:
-	@echo -e "$(GREEN)🐳 跳过 AI 分析，运行 Serena + Docker...$(NC)"
-	@$(PYTHON) tools/full_analyzer.py --skip-ai --yes
-
-## analyze-full-skip-docker: 跳过 Docker 生成，只运行 Serena + AI
-analyze-full-skip-docker:
-	@echo -e "$(GREEN)🤖 跳过 Docker 生成，运行 Serena + AI...$(NC)"
-	@$(PYTHON) tools/full_analyzer.py --skip-docker --yes
-
-## analyze-full-skip-ast: 跳过 AST 分析，运行 Serena + AI + Docker
-analyze-full-skip-ast:
-	@echo -e "$(GREEN)🚀 跳过 AST 分析，运行 Serena + AI + Docker...$(NC)"
-	@$(PYTHON) tools/full_analyzer.py --skip-ast --yes
-
-## analyze-full-force: 强制覆盖已有 Docker 配置
-analyze-full-force:
-	@echo -e "$(YELLOW)⚠️  强制覆盖已有 Docker 配置...$(NC)"
-	@$(PYTHON) tools/full_analyzer.py --force-docker --yes
-
-## analyze-full-no-cache: 禁用缓存，强制调用 AI API
-analyze-full-no-cache:
-	@echo -e "$(YELLOW)⚠️  禁用缓存，强制调用 AI API...$(NC)"
-	@$(PYTHON) tools/full_analyzer.py --no-cache --yes
-
-## analyze-full-custom-ttl: 自定义缓存有效期（参数：TTL）
-analyze-full-custom-ttl:
-	@if [ -z "$(TTL)" ]; then \
-		echo -e "$(YELLOW)⚠️  请指定缓存有效期（秒）: make analyze-full-custom-ttl TTL=3600$(NC)"; \
-		exit 1; \
-	fi
-	@echo -e "$(GREEN)🚀 一键完整分析（缓存有效期: $(TTL) 秒）...$(NC)"
-	@$(PYTHON) tools/full_analyzer.py --cache-ttl $(TTL) --yes
-
 ## analyze-ast: 运行 AST 代码分析
 analyze-ast:
 	@echo -e "$(GREEN)🌳 运行 AST 代码分析...$(NC)"
@@ -274,94 +203,20 @@ docker-generate:
 	fi
 	@$(PYTHON) tools/docker_generator.py $(PROJECT_PATH) --force
 
-## docker-build: 构建 Docker 镜像
-docker-build:
-	@echo -e "$(GREEN)📦 构建 Docker 镜像...$(NC)"
-	@if [ -z "$(PROJECT_PATH)" ]; then \
-		echo -e "$(YELLOW)⚠️  未找到目标项目路径$(NC)"; \
-		exit 1; \
-	fi
-	@cd $(PROJECT_PATH) && ./docker-build.sh
-
-## docker-run: 运行 Docker 容器
-docker-run:
-	@echo -e "$(GREEN)🚀 运行 Docker 容器...$(NC)"
-	@if [ -z "$(PROJECT_PATH)" ]; then \
-		echo -e "$(YELLOW)⚠️  未找到目标项目路径$(NC)"; \
-		exit 1; \
-	fi
-	@cd $(PROJECT_PATH) && ./docker-run.sh
-
-## docker-verify: 验证目标项目的 Docker 配置
-docker-verify:
-	@echo -e "$(GREEN)🔍 验证目标项目 Docker 配置...$(NC)"
-	@if [ -z "$(PROJECT_PATH)" ]; then \
-		echo -e "$(YELLOW)⚠️  未找到目标项目路径$(NC)"; \
-		exit 1; \
-	fi
-	@echo -e "$(CYAN)目标项目路径: $(PROJECT_PATH)$(NC)"
-	@if [ ! -f "$(PROJECT_PATH)/docker-build.sh" ]; then \
-		echo -e "$(YELLOW)⚠  docker-build.sh 不存在$(NC)"; \
-		exit 1; \
-	fi
-	@if [ ! -f "$(PROJECT_PATH)/docker-run.sh" ]; then \
-		echo -e "$(YELLOW)⚠  docker-run.sh 不存在$(NC)"; \
-		exit 1; \
-	fi
-	@echo -e "$(GREEN)✓ Docker 配置验证通过$(NC)"
-
-## docker-all: 构建并运行 Docker 容器（一键完成）
-docker-all: docker-verify docker-build docker-run
-	@echo -e "$(GREEN)🎉 Docker 构建和运行完成！$(NC)"
-
-## docker-compose-up: 使用 docker-compose 启动
-docker-compose-up:
-	@echo -e "$(GREEN)🐳 启动 docker-compose...$(NC)"
-	@if [ -z "$(PROJECT_PATH)" ]; then \
-		echo -e "$(YELLOW)⚠️  未找到目标项目路径$(NC)"; \
-		exit 1; \
-	fi
-	@if [ ! -f "$(PROJECT_PATH)/docker-compose.yml" ]; then \
-		echo -e "$(YELLOW)⚠  docker-compose.yml 不存在$(NC)"; \
-		exit 1; \
-	fi
-	@cd $(PROJECT_PATH) && docker-compose up -d
-
-## docker-compose-down: 停止 docker-compose
-docker-compose-down:
-	@echo -e "$(YELLOW)⏹️  停止 docker-compose...$(NC)"
-	@if [ -z "$(PROJECT_PATH)" ]; then \
-		echo -e "$(YELLOW)⚠️  未找到目标项目路径$(NC)"; \
-		exit 1; \
-	fi
-	@if [ ! -f "$(PROJECT_PATH)/docker-compose.yml" ]; then \
-		echo -e "$(YELLOW)⚠  docker-compose.yml 不存在$(NC)"; \
-		exit 1; \
-	fi
-	@cd $(PROJECT_PATH) && docker-compose down
-
 ## cache-clear: 清除所有 AI 分析缓存
 cache-clear:
 	@echo -e "$(GREEN)🗑️  清除所有 AI 分析缓存...$(NC)"
-	@$(PYTHON) tools/ai_enhanced_analyzer.py --clear-cache
-
-## cache-clear-project: 清除指定项目的缓存（参数：PROJECT_PATH）
-cache-clear-project:
-	@if [ -z "$(PROJECT_PATH)" ]; then \
-		echo -e "$(YELLOW)⚠️  请指定项目路径: make cache-clear-project PROJECT_PATH=/path/to/project$(NC)"; \
-		exit 1; \
-	fi
-	@echo -e "$(GREEN)🗑️  清除项目缓存: $(PROJECT_PATH)$(NC)"
-	@$(PYTHON) tools/ai_enhanced_analyzer.py --clear-project-cache "$(PROJECT_PATH)"
+	@rm -rf .cache/
+	@echo -e "$(GREEN)✓ 缓存已清除$(NC)"
 
 ## cache-list: 列出所有缓存文件
 cache-list:
 	@echo -e "$(CYAN)AI 分析缓存文件:$(NC)"
 	@if [ -d .cache ]; then \
-		if [ -n "$(ls -A .cache)" ]; then \
+		if [ -n "$(ls -A .cache 2>/dev/null)" ]; then \
 			for file in .cache/*.json; do \
-				if [ -f "$file" ]; then \
-					echo -e "  $(basename $file)"; \
+				if [ -f "$$file" ]; then \
+					echo -e "  $$(basename $$file)"; \
 				fi; \
 			done; \
 		else \

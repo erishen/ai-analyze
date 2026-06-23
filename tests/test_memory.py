@@ -3,7 +3,7 @@
 from datetime import datetime
 from unittest.mock import patch, MagicMock
 
-from src.memory import MemoryInfo, MemoryMonitor, MemoryLimiter
+from src.infrastructure.memory import MemoryInfo, MemoryMonitor, MemoryLimiter
 
 
 class TestMemoryInfo:
@@ -47,7 +47,7 @@ class TestMemoryMonitor:
         monitor = MemoryMonitor(threshold_percent=90.0)
         assert monitor.threshold_percent == 90.0
 
-    @patch("src.memory.psutil.Process")
+    @patch("src.infrastructure.memory.psutil.Process")
     def test_get_current_memory(self, mock_process_cls):
         mock_proc = MagicMock()
         mock_mem = MagicMock()
@@ -58,13 +58,13 @@ class TestMemoryMonitor:
         mock_process_cls.return_value = mock_proc
 
         monitor = MemoryMonitor()
-        with patch("src.memory.psutil.virtual_memory") as mock_vm:
+        with patch("src.infrastructure.memory.psutil.virtual_memory") as mock_vm:
             mock_vm.return_value = MagicMock(available=500 * 1024 * 1024, total=1024 * 1024 * 1024 * 8)
             info = monitor.get_current_memory()
             assert isinstance(info, MemoryInfo)
             assert info.rss == 100 * 1024 * 1024
 
-    @patch("src.memory.psutil.Process")
+    @patch("src.infrastructure.memory.psutil.Process")
     def test_check_memory(self, mock_process_cls):
         mock_proc = MagicMock()
         mock_mem = MagicMock()
@@ -75,7 +75,7 @@ class TestMemoryMonitor:
         mock_process_cls.return_value = mock_proc
 
         monitor = MemoryMonitor(threshold_percent=90.0)
-        with patch("src.memory.psutil.virtual_memory") as mock_vm:
+        with patch("src.infrastructure.memory.psutil.virtual_memory") as mock_vm:
             mock_vm.return_value = MagicMock(available=500 * 1024 * 1024, total=1024 * 1024 * 1024 * 8)
             result = monitor.check_memory()
             assert isinstance(result, bool)
@@ -86,7 +86,7 @@ class TestMemoryLimiter:
         limiter = MemoryLimiter(max_memory_mb=512.0)
         assert limiter.max_memory_mb == 512.0
 
-    @patch("src.memory.psutil.Process")
+    @patch("src.infrastructure.memory.psutil.Process")
     def test_check_limit(self, mock_process_cls):
         mock_proc = MagicMock()
         mock_mem = MagicMock()
@@ -97,7 +97,7 @@ class TestMemoryLimiter:
         mock_process_cls.return_value = mock_proc
 
         limiter = MemoryLimiter(max_memory_mb=1024.0)
-        with patch("src.memory.psutil.virtual_memory") as mock_vm:
+        with patch("src.infrastructure.memory.psutil.virtual_memory") as mock_vm:
             mock_vm.return_value = MagicMock(available=500 * 1024 * 1024, total=1024 * 1024 * 1024 * 8)
             result = limiter.check_limit()
             assert isinstance(result, bool)

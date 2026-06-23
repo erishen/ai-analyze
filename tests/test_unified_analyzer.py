@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from src.unified_analyzer import UnifiedFileAnalysis, UnifiedProjectAnalysis, UnifiedAnalyzer
+from src.tools.unified_analyzer import UnifiedFileAnalysis, UnifiedProjectAnalysis, UnifiedAnalyzer
 
 
 class TestUnifiedFileAnalysis:

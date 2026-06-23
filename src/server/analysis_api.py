@@ -149,31 +149,31 @@ class AnalysisAPIService:
             files = self._load_project_files(request.project_path)
 
             if "security" in analysis_types:
-                from .security_scanner import SecurityScanner
+                from ..analyzers.security_scanner import SecurityScanner
 
                 scanner = SecurityScanner()
                 results["security"] = scanner.scan_project(files).to_dict()
 
             if "performance" in analysis_types:
-                from .performance_analyzer import PerformanceAnalyzer
+                from ..analyzers.performance_analyzer import PerformanceAnalyzer
 
                 analyzer = PerformanceAnalyzer()
                 results["performance"] = analyzer.analyze_project(files).to_dict()
 
             if "tech_debt" in analysis_types:
-                from .tech_debt import TechDebtAnalyzer
+                from ..analyzers.tech_debt import TechDebtAnalyzer
 
                 analyzer = TechDebtAnalyzer()
                 results["tech_debt"] = analyzer.analyze_project(files).to_dict()
 
             if "dependency" in analysis_types:
-                from .dependency_graph import DependencyAnalyzer
+                from ..analyzers.dependency_graph import DependencyAnalyzer
 
                 analyzer = DependencyAnalyzer(request.project_path)
                 results["dependency"] = analyzer.analyze_project(files).to_dict()
 
             if "quality" in analysis_types:
-                from .quality_score import QualityScorer, QualityMetrics
+                from ..analyzers.quality_score import QualityScorer, QualityMetrics
 
                 scorer = QualityScorer()
                 metrics = QualityMetrics(

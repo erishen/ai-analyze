@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent / 'tools'))
 
 from tools.ast_analyzer_tool import ASTAnalysisTool  # noqa: E402
-from src.analysis_integration import (  # noqa: E402
+from src.server.analysis_integration import (  # noqa: E402
     AnalysisIntegrator, IntegratedAnalysisResult,
 )
 

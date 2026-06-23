@@ -3,7 +3,7 @@
 import time
 
 
-from src.progress import ProgressMetrics, ProgressBar, PerformanceMonitor
+from src.infrastructure.progress import ProgressMetrics, ProgressBar, PerformanceMonitor
 
 
 class TestProgressMetrics:

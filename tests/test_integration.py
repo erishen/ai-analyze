@@ -11,9 +11,9 @@ import pytest
 # 添加项目路径
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.analysis_integration import AnalysisIntegrator  # noqa: E402
-from src.similarity import SimilarityDetector, CodeBlock  # noqa: E402
-from src.quality_score import QualityScorer, QualityMetrics  # noqa: E402
+from src.server.analysis_integration import AnalysisIntegrator  # noqa: E402
+from src.analyzers.similarity import SimilarityDetector, CodeBlock  # noqa: E402
+from src.analyzers.quality_score import QualityScorer, QualityMetrics  # noqa: E402
 
 
 def test_similarity_detector():

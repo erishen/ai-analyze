@@ -7,8 +7,8 @@ from unittest.mock import patch
 
 import pytest
 
-from src.config import AnalysisConfig, ConfigManager
-from src.exceptions import InvalidConfigException
+from src.infrastructure.config import AnalysisConfig, ConfigManager
+from src.infrastructure.exceptions import InvalidConfigException
 
 
 class TestAnalysisConfig:

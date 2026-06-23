@@ -1,7 +1,7 @@
 """Tests for quality_score module"""
 
 
-from src.quality_score import QualityMetrics, QualityScore, QualityScorer
+from src.analyzers.quality_score import QualityMetrics, QualityScore, QualityScorer
 
 
 class TestQualityMetrics:

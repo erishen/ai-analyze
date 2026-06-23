@@ -41,8 +41,7 @@ class AnalysisConfig:
     # AI 配置
     ai_enabled: bool = True
     openai_api_key: str = ""
-    openai_base_url: str = "https://api.openai.com/v1"
-    openai_model: str = "gpt-3.5-turbo"
+    openai_model: str = "openai/gpt-4"
     ai_timeout: int = 30
     ai_max_retries: int = 3
 
@@ -191,9 +190,6 @@ class ConfigManager:
         # AI 配置
         if api_key := os.getenv("OPENAI_API_KEY"):
             self.config.openai_api_key = api_key
-
-        if base_url := os.getenv("OPENAI_BASE_URL"):
-            self.config.openai_base_url = base_url
 
         if model := os.getenv("OPENAI_MODEL"):
             self.config.openai_model = model

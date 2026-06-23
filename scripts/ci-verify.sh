@@ -18,8 +18,7 @@ echo ""
 # 设置 CI 环境变量
 export CI=true
 export OPENAI_API_KEY="test-key-for-ci"
-export OPENAI_BASE_URL="https://api.deepseek.com"
-export OPENAI_MODEL="deepseek-chat"
+export OPENAI_MODEL="openai/gpt-4"
 export PROJECT_PATH="./"
 
 echo -e "${GREEN}1. 检查虚拟环境...${NC}"
