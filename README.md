@@ -172,9 +172,7 @@ make format
 ---
 
 ## Related Articles
-
-- English: [AI Analyze: Five Design Decisions](https://erishen.cn/ai-analyze-five-design-decisions/)
-- 中文: [AI 视角下的五个设计决策](https://erishen.cn/ai-analyze-five-design-decisions-cn/)
+- [AI-Analyze: Five Non-Obvious Design Decisions](https://erishen.cn/ai-analyze-five-design-decisions/)
 
 ## License
 

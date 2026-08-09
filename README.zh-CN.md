@@ -176,6 +176,4 @@ MIT License
 ---
 
 ## 相关文章
-
-- 中文: [AI 视角下的五个设计决策](https://erishen.cn/ai-analyze-five-design-decisions-cn/)
-- English: [AI Analyze: Five Design Decisions](https://erishen.cn/ai-analyze-five-design-decisions/)
+- [AI-Analyze：五个不显而易见的设计决策](https://erishen.cn/ai-analyze-five-design-decisions-cn/)
