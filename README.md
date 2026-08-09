@@ -169,6 +169,13 @@ make format
 - **Serena** (optional, provides stronger semantic analysis via MCP protocol)
 - **Redis** (optional, L3 cache layer)
 
+---
+
+## Related Articles
+
+- English: [AI Analyze: Five Design Decisions](https://erishen.cn/ai-analyze-five-design-decisions/)
+- 中文: [AI 视角下的五个设计决策](https://erishen.cn/ai-analyze-five-design-decisions-cn/)
+
 ## License
 
 MIT

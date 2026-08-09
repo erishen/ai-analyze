@@ -172,3 +172,10 @@ make format
 ## 许可证
 
 MIT License
+
+---
+
+## 相关文章
+
+- 中文: [AI 视角下的五个设计决策](https://erishen.cn/ai-analyze-five-design-decisions-cn/)
+- English: [AI Analyze: Five Design Decisions](https://erishen.cn/ai-analyze-five-design-decisions/)
