@@ -10,10 +10,10 @@ if _project_root not in sys.path:
 
 from src.analyzers.security_scanner import (  # noqa: E402
     SecurityScanner,
+    SecurityScanResult,
     SeverityLevel,
     VulnerabilityCategory,
     VulnerabilityFinding,
-    SecurityScanResult,
 )
 
 

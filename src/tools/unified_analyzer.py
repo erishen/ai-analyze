@@ -5,11 +5,11 @@
 """
 
 import json
-from dataclasses import dataclass, asdict, field
+import logging
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -113,9 +113,6 @@ class UnifiedAnalyzer:
             serena_report=serena_report,
             ast_report=ast_report,
         )
-
-        # 构建 AST 数据索引（按文件路径）
-        ast_index = self._build_ast_index(ast_report)
 
         # 构建 Serena 数据索引（按文件路径）
         serena_index = self._build_serena_index(serena_report)

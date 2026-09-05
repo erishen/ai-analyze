@@ -11,9 +11,9 @@ import pytest
 # 添加项目路径
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from src.analyzers.quality_score import QualityMetrics, QualityScorer  # noqa: E402
+from src.analyzers.similarity import CodeBlock, SimilarityDetector  # noqa: E402
 from src.server.analysis_integration import AnalysisIntegrator  # noqa: E402
-from src.analyzers.similarity import SimilarityDetector, CodeBlock  # noqa: E402
-from src.analyzers.quality_score import QualityScorer, QualityMetrics  # noqa: E402
 
 
 def test_similarity_detector():
@@ -72,7 +72,7 @@ def test_quality_scorer():
         comment_lines=50,
         blank_lines=30,
         maintainability_index=75.0,
-        technical_debt=0.3
+        technical_debt=0.3,
     )
 
     scorer = QualityScorer()
@@ -113,18 +113,18 @@ async def test_analysis_integrator():
                         "start_line": 1,
                         "end_line": 10,
                         "content": "def test_func():\n    pass",
-                        "cyclomatic_complexity": 1
+                        "cyclomatic_complexity": 1,
                     }
                 ],
                 "classes": [],
-                "code_smells": 0
+                "code_smells": 0,
             }
         ],
         "duplication_ratio": 0.05,
         "test_coverage": 0.8,
         "documentation_ratio": 0.7,
         "maintainability_index": 80,
-        "technical_debt": 0.2
+        "technical_debt": 0.2,
     }
 
     integrator = AnalysisIntegrator("/test/project")
@@ -155,5 +155,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"❌ 测试失败: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

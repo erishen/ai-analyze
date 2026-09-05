@@ -1,6 +1,6 @@
 # Makefile for AI-Analyze
 
-.PHONY: help init test clean lint format format-check ci-verify uv-install uv-sync install-dev type-check debug version analyze-ast analyze-ast-md docker-check docker-generate clean-target clean-reports cache-clear cache-list coverage
+.PHONY: help init check-env test clean lint format format-check ci-verify uv-install uv-sync install-dev type-check debug version analyze-ast analyze-ast-md docker-check docker-generate clean-target clean-reports cache-clear cache-list coverage
 
 # 默认目标
 .DEFAULT_GOAL := help
@@ -49,6 +49,19 @@ init:
 	else \
 		echo -e "$(YELLOW)⚠ .env 文件已存在$(NC)"; \
 	fi
+
+## check-env: 校验运行环境（Python 版本 / 核心依赖 / 环境变量）
+check-env:
+	@echo -e "$(GREEN)检查运行环境...$(NC)"
+	@$(PYTHON) -c "import sys; sys.exit(0) if sys.version_info >= (3, 10) else sys.exit('需要 Python 3.10+，当前 ' + sys.version)"
+	@$(PYTHON) -c "import astroid, dotenv, litellm, mcp, psutil, tree_sitter" \
+		&& echo -e "$(GREEN)✓ 核心依赖已安装$(NC)"
+	@if [ -z "$$OPENAI_API_KEY" ]; then \
+		echo -e "$(YELLOW)⚠ OPENAI_API_KEY 未设置（CI 环境为占位值）$(NC)"; \
+	else \
+		echo -e "$(GREEN)✓ OPENAI_API_KEY 已设置$(NC)"; \
+	fi
+	@echo -e "$(GREEN)✓ 环境检查完成$(NC)"
 
 ## uv-install: 使用 uv 安装依赖（推荐）
 uv-install:

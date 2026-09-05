@@ -9,10 +9,9 @@ SARIF 规范: https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html
 
 import json
 import logging
-from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -153,18 +152,20 @@ def _add_rule(run: dict[str, Any], rule_id: str, description: str, severity: str
 
     level = SEVERITY_TO_LEVEL.get(severity, "warning")
 
-    rules.append({
-        "id": rule_id,
-        "shortDescription": {
-            "text": description,
-        },
-        "defaultConfiguration": {
-            "level": level,
-        },
-        "properties": {
-            "tags": ["maintainability"],
-        },
-    })
+    rules.append(
+        {
+            "id": rule_id,
+            "shortDescription": {
+                "text": description,
+            },
+            "defaultConfiguration": {
+                "level": level,
+            },
+            "properties": {
+                "tags": ["maintainability"],
+            },
+        }
+    )
 
     return len(rules) - 1
 

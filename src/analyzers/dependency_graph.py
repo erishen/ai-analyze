@@ -4,12 +4,12 @@
 分析文件/模块间的依赖关系，生成依赖图数据
 """
 
+import logging
 import os
 import re
 from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Set, Tuple
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -147,9 +147,7 @@ class DependencyGraphResult:
         """生成 Graphviz DOT 格式的依赖图"""
         lines = ["digraph dependencies {", "    rankdir=LR;"]
         for edge in self.edges:
-            lines.append(
-                f'    "{edge.source}" -> "{edge.target}";'
-            )
+            lines.append(f'    "{edge.source}" -> "{edge.target}";')
         lines.append("}")
         return "\n".join(lines)
 
@@ -168,8 +166,8 @@ class DependencyAnalyzer:
 
     # Python 导入模式
     PY_IMPORT_PATTERNS = [
-        (re.compile(r'^import\s+(\S+)'), "import"),
-        (re.compile(r'^from\s+([\w.]+)\s+import'), "from_import"),
+        (re.compile(r"^import\s+(\S+)"), "import"),
+        (re.compile(r"^from\s+([\w.]+)\s+import"), "from_import"),
     ]
 
     # JS/TS 导入模式
@@ -271,9 +269,7 @@ class DependencyAnalyzer:
         # 路径分隔符转为 .
         return base.replace(os.sep, ".")
 
-    def _get_patterns(
-        self, language: str
-    ) -> List[Tuple[re.Pattern, str]]:
+    def _get_patterns(self, language: str) -> List[Tuple[re.Pattern, str]]:
         """获取对应语言的导入模式"""
         if language == "python":
             return self.PY_IMPORT_PATTERNS

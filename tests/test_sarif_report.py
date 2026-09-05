@@ -6,7 +6,7 @@ SARIF 输出格式测试
 import json
 from pathlib import Path
 
-from src.reports.sarif_report import analysis_to_sarif, write_sarif, SARIF_VERSION, SARIF_SCHEMA
+from src.reports.sarif_report import SARIF_SCHEMA, SARIF_VERSION, analysis_to_sarif, write_sarif
 
 
 class TestSarifFormat:
@@ -34,7 +34,7 @@ class TestSarifFormat:
                             "description": "Function has 55 lines",
                             "suggestion": "Break into smaller functions",
                         }
-                    ]
+                    ],
                 }
             ]
         }
@@ -78,7 +78,7 @@ class TestSarifFormat:
                     "line_number": 10,
                     "description": "Use of eval() is dangerous",
                 }
-            ]
+            ],
         }
 
         sarif = analysis_to_sarif(analysis)
@@ -93,10 +93,12 @@ class TestSarifFormat:
         """规则去重"""
         analysis = {
             "files": [
-                {"code_smells": [
-                    {"name": "Long Function", "severity": "medium", "location": "a.py:1", "description": "Long"},
-                    {"name": "Long Function", "severity": "medium", "location": "b.py:1", "description": "Long"},
-                ]}
+                {
+                    "code_smells": [
+                        {"name": "Long Function", "severity": "medium", "location": "a.py:1", "description": "Long"},
+                        {"name": "Long Function", "severity": "medium", "location": "b.py:1", "description": "Long"},
+                    ]
+                }
             ]
         }
 
@@ -112,9 +114,16 @@ class TestSarifFormat:
         """SARIF 文件写入"""
         analysis = {
             "files": [
-                {"code_smells": [
-                    {"name": "COMPLEX001", "severity": "high", "location": "test.py:5", "description": "Too complex"}
-                ]}
+                {
+                    "code_smells": [
+                        {
+                            "name": "COMPLEX001",
+                            "severity": "high",
+                            "location": "test.py:5",
+                            "description": "Too complex",
+                        }
+                    ]
+                }
             ]
         }
 
@@ -141,9 +150,7 @@ class TestSarifFormat:
         """没有行号的 location"""
         analysis = {
             "files": [
-                {"code_smells": [
-                    {"name": "test", "severity": "low", "location": "src/main.py", "description": "Test"}
-                ]}
+                {"code_smells": [{"name": "test", "severity": "low", "location": "src/main.py", "description": "Test"}]}
             ]
         }
 

@@ -4,10 +4,10 @@
 """
 
 import hashlib
-from typing import Any, Dict, List
+import logging
 from dataclasses import dataclass
 from difflib import SequenceMatcher
-import logging
+from typing import Any, Dict, List
 
 
 @dataclass

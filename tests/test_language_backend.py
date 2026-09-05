@@ -4,15 +4,13 @@ LanguageBackend 系统测试
 """
 
 import pytest
-from pathlib import Path
 
-from src.backends.language_backend import (
-    LanguageBackend,
-    TreeSitterBackend,
-    SerenaBackend,
-    BackendFactory,
-)
 from src.analyzers.ast_analyzer import Language
+from src.backends.language_backend import (
+    BackendFactory,
+    SerenaBackend,
+    TreeSitterBackend,
+)
 
 
 class TestTreeSitterBackend:
@@ -77,6 +75,7 @@ class TestSerenaBackend:
     def test_is_available_no_env(self):
         """SERENA_DIR 未设置时不可用"""
         import os
+
         original = os.environ.get("SERENA_DIR")
         try:
             os.environ.pop("SERENA_DIR", None)
@@ -89,6 +88,7 @@ class TestSerenaBackend:
     def test_is_available_with_env(self):
         """SERENA_DIR 指向不存在的路径时不可用"""
         import os
+
         original = os.environ.get("SERENA_DIR")
         try:
             os.environ["SERENA_DIR"] = "/nonexistent/path"
@@ -130,6 +130,7 @@ class TestBackendFactory:
     def test_create_serena_fallback(self):
         """Serena 不可用时回退到 TreeSitter"""
         import os
+
         original = os.environ.get("SERENA_DIR")
         try:
             os.environ.pop("SERENA_DIR", None)
@@ -149,6 +150,7 @@ class TestBackendFactory:
 
     def test_auto_select_without_serena(self):
         import os
+
         original = os.environ.get("SERENA_DIR")
         try:
             os.environ.pop("SERENA_DIR", None)

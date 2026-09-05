@@ -26,6 +26,15 @@ __all__ = [
     "BackendFactory",
 ]
 
-from .analyzers import ASTAnalyzerFactory, detect_language, SecurityScanner, QualityScorer, QualityMetrics, SimilarityDetector, CodeBlock, DependencyAnalyzer
-from .backends import BackendFactory, LanguageBackend, TreeSitterBackend, SerenaBackend
-from .infrastructure import ConfigManager, UnifiedLogger, MultiLevelCache
+from .analyzers import (
+    ASTAnalyzerFactory,
+    CodeBlock,
+    DependencyAnalyzer,
+    QualityMetrics,
+    QualityScorer,
+    SecurityScanner,
+    SimilarityDetector,
+    detect_language,
+)
+from .backends import BackendFactory, LanguageBackend, SerenaBackend, TreeSitterBackend
+from .infrastructure import ConfigManager, MultiLevelCache, UnifiedLogger

@@ -12,11 +12,10 @@ import asyncio
 import json
 import sys
 import tempfile
+import unittest
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any, Dict
-
-import unittest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -25,14 +24,14 @@ from src.analyzers.ast_analyzer import (  # noqa: E402
     FunctionInfo,
     PythonASTAnalyzer,
 )
+from src.analyzers.quality_score import QualityMetrics, QualityScorer  # noqa: E402
 from src.infrastructure.benchmark import Benchmark  # noqa: E402
 from src.tools.unified_analyzer import UnifiedAnalyzer  # noqa: E402
-from src.analyzers.quality_score import QualityScorer, QualityMetrics  # noqa: E402
-
 
 # ============================================================
 # 测试数据生成器
 # ============================================================
+
 
 class TestDataGenerator:
     """生成测试用的模拟数据"""
@@ -44,84 +43,96 @@ class TestDataGenerator:
         for i in range(num_files):
             functions = []
             for j in range(funcs_per_file):
-                functions.append({
-                    "name": f"func_{i}_{j}",
-                    "line_start": j * 20 + 1,
-                    "line_end": j * 20 + 15,
-                    "complexity": {
-                        "cyclomatic_complexity": (j % 10) + 1,
-                        "cognitive_complexity": (j % 8) + 1,
-                        "nesting_depth": j % 5,
-                        "lines_of_code": 15,
-                    },
-                    "parameters": [f"param_{k}" for k in range(j % 6)],
-                    "return_type": "None" if j % 3 == 0 else "str",
-                    "is_async": j % 4 == 0,
-                    "is_static": j % 5 == 0,
-                    "code_smells": [
-                        {
-                            "name": "COMPLEX001",
-                            "severity": "high" if j % 3 == 0 else "medium",
-                            "description": f"Function too long (func_{i}_{j})",
-                            "suggestion": "Break into smaller functions",
-                        }
-                    ] if j % 2 == 0 else [],
-                })
+                functions.append(
+                    {
+                        "name": f"func_{i}_{j}",
+                        "line_start": j * 20 + 1,
+                        "line_end": j * 20 + 15,
+                        "complexity": {
+                            "cyclomatic_complexity": (j % 10) + 1,
+                            "cognitive_complexity": (j % 8) + 1,
+                            "nesting_depth": j % 5,
+                            "lines_of_code": 15,
+                        },
+                        "parameters": [f"param_{k}" for k in range(j % 6)],
+                        "return_type": "None" if j % 3 == 0 else "str",
+                        "is_async": j % 4 == 0,
+                        "is_static": j % 5 == 0,
+                        "code_smells": [
+                            {
+                                "name": "COMPLEX001",
+                                "severity": "high" if j % 3 == 0 else "medium",
+                                "description": f"Function too long (func_{i}_{j})",
+                                "suggestion": "Break into smaller functions",
+                            }
+                        ]
+                        if j % 2 == 0
+                        else [],
+                    }
+                )
 
             classes = []
             for j in range(classes_per_file):
                 methods = []
                 for k in range(3):
-                    methods.append({
-                        "name": f"method_{k}",
-                        "line_start": j * 40 + k * 10 + 1,
-                        "line_end": j * 40 + k * 10 + 8,
-                        "complexity": {
-                            "cyclomatic_complexity": k + 1,
-                            "cognitive_complexity": k,
-                            "nesting_depth": k % 3,
-                            "lines_of_code": 8,
-                        },
-                        "parameters": ["self"],
-                        "return_type": None,
-                        "is_async": False,
-                        "is_static": False,
-                        "code_smells": [],
-                    })
+                    methods.append(
+                        {
+                            "name": f"method_{k}",
+                            "line_start": j * 40 + k * 10 + 1,
+                            "line_end": j * 40 + k * 10 + 8,
+                            "complexity": {
+                                "cyclomatic_complexity": k + 1,
+                                "cognitive_complexity": k,
+                                "nesting_depth": k % 3,
+                                "lines_of_code": 8,
+                            },
+                            "parameters": ["self"],
+                            "return_type": None,
+                            "is_async": False,
+                            "is_static": False,
+                            "code_smells": [],
+                        }
+                    )
 
-                classes.append({
-                    "name": f"Class_{i}_{j}",
-                    "line_start": j * 40 + 1,
-                    "line_end": j * 40 + 35,
-                    "methods_count": len(methods),
-                    "inheritance_depth": j % 3,
-                    "code_smells": [],
-                })
-
-            files.append({
-                "file_path": f"src/module_{i}.py",
-                "language": "python",
-                "total_lines": funcs_per_file * 20 + classes_per_file * 40,
-                "functions": functions,
-                "classes": classes,
-                "imports": ["os", "sys", "json", "logging"],
-                "code_smells": [
+                classes.append(
                     {
-                        "name": "SEC001",
-                        "severity": "critical" if i % 5 == 0 else "low",
-                        "location": f"src/module_{i}.py:{i * 10}",
-                        "description": "Use of eval()",
-                        "suggestion": "Use ast.literal_eval()",
+                        "name": f"Class_{i}_{j}",
+                        "line_start": j * 40 + 1,
+                        "line_end": j * 40 + 35,
+                        "methods_count": len(methods),
+                        "inheritance_depth": j % 3,
+                        "code_smells": [],
                     }
-                ] if i % 3 == 0 else [],
-                "overall_complexity": {
-                    "cyclomatic_complexity": funcs_per_file * 3 + i,
-                    "cognitive_complexity": funcs_per_file * 2 + i,
-                    "lines_of_code": funcs_per_file * 15,
-                    "comment_lines": funcs_per_file * 2,
-                    "blank_lines": funcs_per_file * 3,
-                },
-            })
+                )
+
+            files.append(
+                {
+                    "file_path": f"src/module_{i}.py",
+                    "language": "python",
+                    "total_lines": funcs_per_file * 20 + classes_per_file * 40,
+                    "functions": functions,
+                    "classes": classes,
+                    "imports": ["os", "sys", "json", "logging"],
+                    "code_smells": [
+                        {
+                            "name": "SEC001",
+                            "severity": "critical" if i % 5 == 0 else "low",
+                            "location": f"src/module_{i}.py:{i * 10}",
+                            "description": "Use of eval()",
+                            "suggestion": "Use ast.literal_eval()",
+                        }
+                    ]
+                    if i % 3 == 0
+                    else [],
+                    "overall_complexity": {
+                        "cyclomatic_complexity": funcs_per_file * 3 + i,
+                        "cognitive_complexity": funcs_per_file * 2 + i,
+                        "lines_of_code": funcs_per_file * 15,
+                        "comment_lines": funcs_per_file * 2,
+                        "blank_lines": funcs_per_file * 3,
+                    },
+                }
+            )
 
         return {
             "project_path": "/tmp/test_project",
@@ -149,18 +160,15 @@ class TestDataGenerator:
         """生成模拟 Serena 分析报告"""
         files = []
         for i in range(num_files):
-            files.append({
-                "path": f"src/module_{i}.py",
-                "language": "python",
-                "lines": 100 + i * 10,
-                "symbols": [
-                    {"name": f"func_{i}_{j}", "kind": "function", "line": j * 20}
-                    for j in range(5)
-                ] + [
-                    {"name": f"Class_{i}_{j}", "kind": "class", "line": j * 40}
-                    for j in range(2)
-                ],
-            })
+            files.append(
+                {
+                    "path": f"src/module_{i}.py",
+                    "language": "python",
+                    "lines": 100 + i * 10,
+                    "symbols": [{"name": f"func_{i}_{j}", "kind": "function", "line": j * 20} for j in range(5)]
+                    + [{"name": f"Class_{i}_{j}", "kind": "class", "line": j * 40} for j in range(2)],
+                }
+            )
 
         return {
             "project_path": "/tmp/test_project",
@@ -173,28 +181,32 @@ class TestDataGenerator:
         """创建测试用 Python 文件"""
         lines = ["import os", "import sys", "", ""]
         for i in range(num_functions):
-            lines.extend([
-                f"def func_{i}(x, y):",
-                f"    if x > {i}:",
-                "        for j in range(y):",
-                "            if j % 2 == 0:",
-                "                print(j)",
-                "    return x + y",
+            lines.extend(
+                [
+                    f"def func_{i}(x, y):",
+                    f"    if x > {i}:",
+                    "        for j in range(y):",
+                    "            if j % 2 == 0:",
+                    "                print(j)",
+                    "    return x + y",
+                    "",
+                ]
+            )
+        lines.extend(
+            [
+                "class MyClass:",
+                "    def __init__(self):",
+                "        self.value = 0",
                 "",
-            ])
-        lines.extend([
-            "class MyClass:",
-            "    def __init__(self):",
-            "        self.value = 0",
-            "",
-            "    def compute(self, data):",
-            "        result = 0",
-            "        for item in data:",
-            "            if item > 0:",
-            "                result += item",
-            "        return result",
-            "",
-        ])
+                "    def compute(self, data):",
+                "        result = 0",
+                "        for item in data:",
+                "            if item > 0:",
+                "                result += item",
+                "        return result",
+                "",
+            ]
+        )
 
         filepath = directory / name
         filepath.write_text("\n".join(lines), encoding="utf-8")
@@ -204,6 +216,7 @@ class TestDataGenerator:
 # ============================================================
 # 优化 1: 并行执行 性能测试
 # ============================================================
+
 
 class TestOptimization1Parallel(unittest.TestCase):
     """优化 1: 并行执行性能测试 (目标: +20-30%)"""
@@ -217,9 +230,7 @@ class TestOptimization1Parallel(unittest.TestCase):
 
         # 创建大量 Python 文件用于测试（模拟真实项目规模）
         for i in range(20):
-            TestDataGenerator.create_sample_python_file(
-                cls.project_dir, f"module_{i}.py", num_functions=30
-            )
+            TestDataGenerator.create_sample_python_file(cls.project_dir, f"module_{i}.py", num_functions=30)
 
     def test_ast_analysis_sequential(self):
         """串行 AST 分析基准"""
@@ -244,6 +255,7 @@ class TestOptimization1Parallel(unittest.TestCase):
         def run_parallel():
             def analyze_one(f):
                 return analyzer.analyze_file(str(f))
+
             with ThreadPoolExecutor(max_workers=4) as executor:
                 results = list(executor.map(analyze_one, py_files))
             return results
@@ -262,16 +274,16 @@ class TestOptimization1Parallel(unittest.TestCase):
         comparison = self.benchmark.compare("sequential_ast", "parallel_ast")
         speedup = comparison["speedup"]
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("优化 1: 并行执行 vs 串行执行 (20 files, 30 funcs/file)")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"  串行平均时间: {comparison['time1']:.4f}s")
         print(f"  并行平均时间: {comparison['time2']:.4f}s")
         print(f"  加速比: {speedup:.2f}x")
         print(f"  性能改进: {comparison['improvement']:+.1f}%")
         print("  目标: +20-30%")
         print("  注: 小规模数据并行开销可能抵消收益，真实项目中效果更明显")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         self.assertIsInstance(speedup, float)
 
@@ -279,6 +291,7 @@ class TestOptimization1Parallel(unittest.TestCase):
 # ============================================================
 # 优化 2: 增强 AI 分析 性能测试
 # ============================================================
+
 
 class TestOptimization2AIEnhanced(unittest.TestCase):
     """优化 2: 增强 AI 分析性能测试 (目标: +15-25%)"""
@@ -291,9 +304,7 @@ class TestOptimization2AIEnhanced(unittest.TestCase):
         cls.project_dir.mkdir(exist_ok=True)
 
         for i in range(5):
-            TestDataGenerator.create_sample_python_file(
-                cls.project_dir, f"module_{i}.py", num_functions=15
-            )
+            TestDataGenerator.create_sample_python_file(cls.project_dir, f"module_{i}.py", num_functions=15)
 
     def test_complexity_hotspot_extraction(self):
         """测试复杂度热点提取性能"""
@@ -390,18 +401,19 @@ class TestOptimization2AIEnhanced(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         if cls.benchmark.results:
-            print(f"\n{'='*60}")
+            print(f"\n{'=' * 60}")
             print("优化 2: 增强 AI 分析 - 各项性能")
-            print(f"{'='*60}")
+            print(f"{'=' * 60}")
             for name, r in cls.benchmark.results.items():
                 print(f"  {name}: avg={r.mean_time:.6f}s, median={r.median_time:.6f}s")
             print("  目标: +15-25% 信息增益")
-            print(f"{'='*60}")
+            print(f"{'=' * 60}")
 
 
 # ============================================================
 # 优化 3: 数据融合 性能测试
 # ============================================================
+
 
 class TestOptimization3DataFusion(unittest.TestCase):
     """优化 3: 数据融合性能测试 (目标: +30-50%)"""
@@ -499,12 +511,12 @@ class TestOptimization3DataFusion(unittest.TestCase):
 
         # 计算信息增益
         separate_data_points = 4  # 分开分析只产出 4 类数据
-        fusion_data_points = 5    # 融合分析产出 5 类数据（含质量评分和跨源洞察）
+        fusion_data_points = 5  # 融合分析产出 5 类数据（含质量评分和跨源洞察）
         info_gain = (fusion_data_points - separate_data_points) / separate_data_points * 100
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("优化 3: 数据融合 - 信息增益分析")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"  分开分析数据维度: {separate_data_points}")
         print(f"  融合分析数据维度: {fusion_data_points}")
         print(f"  信息增益: +{info_gain:.0f}%")
@@ -513,11 +525,11 @@ class TestOptimization3DataFusion(unittest.TestCase):
         print(f"    - 统一复杂度: {fus_result['total_complexity']}")
         print(f"    - 统一坏味道: {fus_result['cross_source_insights']}")
         print("  目标: +30-50%")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         # 融合分析必须产出比分开分析更多的信息维度
         self.assertGreater(fusion_data_points, separate_data_points)
-        self.assertGreater(fus_result['quality_scores'], 0)
+        self.assertGreater(fus_result["quality_scores"], 0)
 
     def test_fusion_scalability(self):
         """测试融合分析的扩展性"""
@@ -564,21 +576,22 @@ class TestOptimization3DataFusion(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         if cls.benchmark.results:
-            print(f"\n{'='*60}")
+            print(f"\n{'=' * 60}")
             print("优化 3: 数据融合 - 各项性能")
-            print(f"{'='*60}")
+            print(f"{'=' * 60}")
             for name, r in cls.benchmark.results.items():
                 if "scale" in name:
                     print(f"  {name}: avg={r.mean_time:.6f}s")
                 else:
                     print(f"  {name}: avg={r.mean_time:.6f}s, median={r.median_time:.6f}s")
             print("  目标: +30-50% 信息增益")
-            print(f"{'='*60}")
+            print(f"{'=' * 60}")
 
 
 # ============================================================
 # 综合性能报告
 # ============================================================
+
 
 class TestPerformanceReport(unittest.TestCase):
     """生成综合性能报告"""
@@ -600,7 +613,7 @@ class TestPerformanceReport(unittest.TestCase):
             "speedup": f"{comparison_1['speedup']:.2f}x",
             "improvement": f"{comparison_1['improvement']:+.1f}%",
             "note": "并行收益随项目规模增长；小项目因线程开销可能为负值",
-            "target_met": comparison_1['improvement'] >= 20,
+            "target_met": comparison_1["improvement"] >= 20,
         }
 
         # ---- 优化 2: 增强 AI 分析 ----
@@ -649,9 +662,9 @@ class TestPerformanceReport(unittest.TestCase):
             json.dump(all_benchmarks, f, indent=2, ensure_ascii=False)
 
         # 打印摘要
-        print(f"\n{'='*70}")
+        print(f"\n{'=' * 70}")
         print("  AI-Analyze 性能基准测试综合报告")
-        print(f"{'='*70}")
+        print(f"{'=' * 70}")
         print(f"  优化 1 (并行执行): {comparison_1['improvement']:+.1f}% (目标: +20-30%)")
         print(f"    串行: {comparison_1['time1']:.6f}s | 并行: {comparison_1['time2']:.6f}s")
         print("  优化 2 (AI增强): 功能正确性已验证")
@@ -662,9 +675,9 @@ class TestPerformanceReport(unittest.TestCase):
         print(f"    - 10文件: {opt3_results.get('fusion_small_10files', {}).get('avg', 'N/A')}")
         print(f"    - 50文件: {opt3_results.get('fusion_medium_50files', {}).get('avg', 'N/A')}")
         print(f"    - 200文件: {opt3_results.get('fusion_large_200files', {}).get('avg', 'N/A')}")
-        print(f"{'='*70}")
+        print(f"{'=' * 70}")
         print(f"  报告已保存: {report_path}")
-        print(f"{'='*70}")
+        print(f"{'=' * 70}")
 
         self.assertTrue(report_path.exists())
 

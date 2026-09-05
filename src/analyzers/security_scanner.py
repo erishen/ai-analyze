@@ -4,11 +4,11 @@
 基于 AST 和模式匹配识别潜在安全漏洞
 """
 
+import logging
 import re
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -226,9 +226,7 @@ class SecurityScanner:
 
         return findings
 
-    def scan_project(
-        self, files: Dict[str, str], max_findings: int = 500
-    ) -> SecurityScanResult:
+    def scan_project(self, files: Dict[str, str], max_findings: int = 500) -> SecurityScanResult:
         """扫描项目
 
         Args:
@@ -312,10 +310,10 @@ class SecurityScanner:
                 category=VulnerabilityCategory.INJECTION,
                 severity=SeverityLevel.CRITICAL,
                 patterns=[
-                    r'pickle\.loads?\(',
-                    r'yaml\.load\(',
-                    r'marshal\.loads?\(',
-                    r'shelve\.open\(',
+                    r"pickle\.loads?\(",
+                    r"yaml\.load\(",
+                    r"marshal\.loads?\(",
+                    r"shelve\.open\(",
                 ],
                 languages=["py"],
                 remediation="Use yaml.safe_load() or json for safe deserialization",
@@ -328,11 +326,11 @@ class SecurityScanner:
                 category=VulnerabilityCategory.INJECTION,
                 severity=SeverityLevel.CRITICAL,
                 patterns=[
-                    r'subprocess\.\w+\(.*shell\s*=\s*True',
-                    r'os\.system\s*\(',
-                    r'os\.popen\s*\(',
-                    r'eval\s*\(',
-                    r'exec\s*\(',
+                    r"subprocess\.\w+\(.*shell\s*=\s*True",
+                    r"os\.system\s*\(",
+                    r"os\.popen\s*\(",
+                    r"eval\s*\(",
+                    r"exec\s*\(",
                 ],
                 languages=["py"],
                 remediation="Avoid shell=True; use subprocess with argument lists",
@@ -345,10 +343,10 @@ class SecurityScanner:
                 category=VulnerabilityCategory.CRYPTO,
                 severity=SeverityLevel.MEDIUM,
                 patterns=[
-                    r'hashlib\.md5\s*\(',
-                    r'hashlib\.sha1\s*\(',
-                    r'DES\.new\s*\(',
-                    r'ARC4\.new\s*\(',
+                    r"hashlib\.md5\s*\(",
+                    r"hashlib\.sha1\s*\(",
+                    r"DES\.new\s*\(",
+                    r"ARC4\.new\s*\(",
                 ],
                 languages=["py"],
                 remediation="Use SHA-256+ for hashing, AES for encryption",
@@ -375,9 +373,9 @@ class SecurityScanner:
                 category=VulnerabilityCategory.MISCONFIGURATION,
                 severity=SeverityLevel.MEDIUM,
                 patterns=[
-                    r'DEBUG\s*=\s*True',
-                    r'app\.debug\s*=\s*True',
-                    r'app\.run\s*\([^)]*debug\s*=\s*True',
+                    r"DEBUG\s*=\s*True",
+                    r"app\.debug\s*=\s*True",
+                    r"app\.run\s*\([^)]*debug\s*=\s*True",
                 ],
                 languages=["py"],
                 remediation="Set DEBUG=False in production environments",
@@ -390,9 +388,9 @@ class SecurityScanner:
                 category=VulnerabilityCategory.ERROR_HANDLING,
                 severity=SeverityLevel.LOW,
                 patterns=[
-                    r'traceback\.print_exc\s*\(\s*\)',
-                    r'raise\s+\w+.*\n.*return\s+str\(',
-                    r'return\s+str\(e\)',
+                    r"traceback\.print_exc\s*\(\s*\)",
+                    r"raise\s+\w+.*\n.*return\s+str\(",
+                    r"return\s+str\(e\)",
                 ],
                 languages=["py"],
                 remediation="Return generic error messages; log details server-side",
@@ -405,9 +403,9 @@ class SecurityScanner:
                 category=VulnerabilityCategory.INPUT_VALIDATION,
                 severity=SeverityLevel.HIGH,
                 patterns=[
-                    r'open\s*\(\s*[^)]*\+\s*',
-                    r'os\.path\.join\s*\([^)]*request',
-                    r'open\s*\(\s*request\.',
+                    r"open\s*\(\s*[^)]*\+\s*",
+                    r"os\.path\.join\s*\([^)]*request",
+                    r"open\s*\(\s*request\.",
                 ],
                 languages=["py"],
                 remediation="Validate and sanitize all file paths; use allowlists",
@@ -420,9 +418,9 @@ class SecurityScanner:
                 category=VulnerabilityCategory.MISCONFIGURATION,
                 severity=SeverityLevel.MEDIUM,
                 patterns=[
-                    r'CORS.*\*',
-                    r'Access-Control-Allow-Origin.*\*',
-                    r'allow_origins.*\*',
+                    r"CORS.*\*",
+                    r"Access-Control-Allow-Origin.*\*",
+                    r"allow_origins.*\*",
                 ],
                 languages=["py", "js", "ts"],
                 remediation="Restrict CORS to specific trusted domains",
@@ -435,8 +433,8 @@ class SecurityScanner:
                 category=VulnerabilityCategory.INJECTION,
                 severity=SeverityLevel.HIGH,
                 patterns=[
-                    r'\beval\s*\(',
-                    r'new\s+Function\s*\(',
+                    r"\beval\s*\(",
+                    r"new\s+Function\s*\(",
                 ],
                 languages=["js", "ts"],
                 remediation="Avoid eval(); use JSON.parse() or other safe alternatives",
@@ -449,9 +447,9 @@ class SecurityScanner:
                 category=VulnerabilityCategory.INPUT_VALIDATION,
                 severity=SeverityLevel.HIGH,
                 patterns=[
-                    r'\.innerHTML\s*=',
-                    r'\.outerHTML\s*=',
-                    r'document\.write\s*\(',
+                    r"\.innerHTML\s*=",
+                    r"\.outerHTML\s*=",
+                    r"document\.write\s*\(",
                 ],
                 languages=["js", "ts"],
                 remediation="Use textContent or DOM API to prevent XSS",

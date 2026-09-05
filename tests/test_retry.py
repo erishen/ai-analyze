@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.infrastructure.retry import RetryConfig, retry, RetryManager, RetryableException
+from src.infrastructure.retry import RetryableException, RetryConfig, RetryManager, retry
 
 
 class TestRetryConfig:

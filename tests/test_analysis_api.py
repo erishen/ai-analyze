@@ -11,8 +11,10 @@ from unittest.mock import AsyncMock  # noqa: F401
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.server.analysis_api import (  # noqa: E402
-    AnalysisAPIService, AnalysisRequest,
-    AnalysisResponse, WebhookNotifier,
+    AnalysisAPIService,
+    AnalysisRequest,
+    AnalysisResponse,
+    WebhookNotifier,
 )
 
 

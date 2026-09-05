@@ -9,11 +9,11 @@ if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
 from src.analyzers.performance_analyzer import (  # noqa: E402
+    ImpactLevel,
+    PerformanceAnalysisResult,
     PerformanceAnalyzer,
     PerformanceCategory,
-    ImpactLevel,
     PerformanceIssue,
-    PerformanceAnalysisResult,
     PerformancePattern,
 )
 
@@ -94,7 +94,7 @@ class TestPerformanceAnalyzer:
             name="Custom Check",
             category=PerformanceCategory.ALGORITHM,
             impact=ImpactLevel.LOW,
-            patterns=[r'bad_pattern_\d+'],
+            patterns=[r"bad_pattern_\d+"],
         )
         analyzer = PerformanceAnalyzer(custom_patterns=[custom])
         code = "bad_pattern_42\n"

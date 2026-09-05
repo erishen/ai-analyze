@@ -21,8 +21,10 @@ class TestAnalysisStore:
 
     def test_save_and_get(self):
         rid = self.store.save(
-            "test_project", "/path/to/project",
-            "security", {"risk_score": 30.0},
+            "test_project",
+            "/path/to/project",
+            "security",
+            {"risk_score": 30.0},
         )
         assert rid > 0
         record = self.store.get_by_id(rid)
@@ -71,8 +73,12 @@ class TestAnalysisStore:
 
     def test_save_with_metadata(self):
         rid = self.store.save(
-            "proj", "/p", "security", {"score": 50},
-            duration=1.5, metadata={"version": "0.2.0"},
+            "proj",
+            "/p",
+            "security",
+            {"score": 50},
+            duration=1.5,
+            metadata={"version": "0.2.0"},
         )
         record = self.store.get_by_id(rid)
         assert record["duration"] == 1.5

@@ -3,9 +3,9 @@
 用于计算和评估代码质量
 """
 
-from typing import Dict, List, Any
-from dataclasses import dataclass, field
 import logging
+from dataclasses import dataclass, field
+from typing import Any, Dict, List
 
 
 @dataclass
@@ -232,30 +232,32 @@ class QualityScorer:
 
         # 复杂度建议
         if metrics.cyclomatic_complexity > 10:
-            recommendations.append(f"圈复杂度过高 ({metrics.cyclomatic_complexity:.1f})，" "建议重构函数，拆分为更小的函数")
+            recommendations.append(
+                f"圈复杂度过高 ({metrics.cyclomatic_complexity:.1f})，建议重构函数，拆分为更小的函数"
+            )
 
         if metrics.cognitive_complexity > 20:
-            recommendations.append(f"认知复杂度过高 ({metrics.cognitive_complexity:.1f})，" "建议简化逻辑，提高代码可读性")
+            recommendations.append(f"认知复杂度过高 ({metrics.cognitive_complexity:.1f})，建议简化逻辑，提高代码可读性")
 
         # 代码坏味道建议
         if metrics.code_smells > 5:
-            recommendations.append(f"发现 {metrics.code_smells} 个代码坏味道，" "建议进行代码审查和重构")
+            recommendations.append(f"发现 {metrics.code_smells} 个代码坏味道，建议进行代码审查和重构")
 
         # 重复代码建议
         if metrics.duplication_ratio > 0.1:
-            recommendations.append(f"重复代码比例过高 ({metrics.duplication_ratio:.1%})，" "建议提取公共代码到共享模块")
+            recommendations.append(f"重复代码比例过高 ({metrics.duplication_ratio:.1%})，建议提取公共代码到共享模块")
 
         # 测试覆盖率建议
         if metrics.test_coverage < 0.7:
-            recommendations.append(f"测试覆盖率不足 ({metrics.test_coverage:.1%})，" "建议增加单元测试")
+            recommendations.append(f"测试覆盖率不足 ({metrics.test_coverage:.1%})，建议增加单元测试")
 
         # 文档覆盖率建议
         if metrics.documentation_ratio < 0.5:
-            recommendations.append(f"文档覆盖率不足 ({metrics.documentation_ratio:.1%})，" "建议添加更多代码注释和文档")
+            recommendations.append(f"文档覆盖率不足 ({metrics.documentation_ratio:.1%})，建议添加更多代码注释和文档")
 
         # 技术债务建议
         if metrics.technical_debt > 0.5:
-            recommendations.append(f"技术债务较高 ({metrics.technical_debt:.1f})，" "建议优先处理高优先级的技术债务")
+            recommendations.append(f"技术债务较高 ({metrics.technical_debt:.1f})，建议优先处理高优先级的技术债务")
 
         return recommendations
 

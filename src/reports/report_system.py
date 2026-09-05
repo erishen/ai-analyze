@@ -5,11 +5,11 @@
 """
 
 import json
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -401,9 +401,9 @@ class HTMLReportGenerator:
                 sev = f.get("severity", "low")
                 rows += (
                     f'<tr><td class="severity-{sev}">{sev}</td>'
-                    f'<td>{f.get("rule_name", "")}</td>'
-                    f'<td>{f.get("file_path", "")}:{f.get("line_number", "")}</td>'
-                    f'<td>{f.get("description", "")}</td></tr>'
+                    f"<td>{f.get('rule_name', '')}</td>"
+                    f"<td>{f.get('file_path', '')}:{f.get('line_number', '')}</td>"
+                    f"<td>{f.get('description', '')}</td></tr>"
                 )
             sections.append(
                 f'<div class="section"><h2>Security Findings</h2>'
@@ -420,9 +420,9 @@ class HTMLReportGenerator:
                 impact = i.get("impact", "low")
                 rows += (
                     f'<tr><td class="severity-{impact}">{impact}</td>'
-                    f'<td>{i.get("name", "")}</td>'
-                    f'<td>{i.get("file_path", "")}:{i.get("line_number", "")}</td>'
-                    f'<td>{i.get("suggestion", "")}</td></tr>'
+                    f"<td>{i.get('name', '')}</td>"
+                    f"<td>{i.get('file_path', '')}:{i.get('line_number', '')}</td>"
+                    f"<td>{i.get('suggestion', '')}</td></tr>"
                 )
             sections.append(
                 f'<div class="section"><h2>Performance Issues</h2>'
@@ -474,16 +474,13 @@ class HTMLReportGenerator:
             return ""
 
         chart_divs = "\n".join(
-            f'<div class="section"><h2>Charts</h2>' f'<canvas id="{cid}" ' f'class="chart-container"></canvas></div>'
+            f'<div class="section"><h2>Charts</h2><canvas id="{cid}" class="chart-container"></canvas></div>'
             for cid, _ in charts
         )
         chart_scripts = "\n".join(script for _, script in charts)
 
         return (
-            '<script src="https://cdn.jsdelivr.net/npm/chart.js">'
-            "</script>"
-            f"{chart_divs}"
-            f"<script>{chart_scripts}</script>"
+            f'<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>{chart_divs}<script>{chart_scripts}</script>'
         )
 
     @staticmethod

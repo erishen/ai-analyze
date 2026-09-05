@@ -3,12 +3,13 @@
 用于监控内存使用情况和优化内存占用
 """
 
-import os
-import psutil
 import logging
-from typing import Optional, Dict, Any, List
+import os
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+import psutil
 
 
 @dataclass
@@ -107,7 +108,7 @@ class MemoryMonitor:
 
         if memory.percent > self.threshold_percent:
             self.logger.warning(
-                f"内存使用过高: {memory.percent:.1f}% " f"(RSS: {memory.rss_mb:.1f}MB, VMS: {memory.vms_mb:.1f}MB)"
+                f"内存使用过高: {memory.percent:.1f}% (RSS: {memory.rss_mb:.1f}MB, VMS: {memory.vms_mb:.1f}MB)"
             )
             return False
 
@@ -223,7 +224,7 @@ class MemoryProfiler:
         print("=" * 60)
 
         for i, snapshot in enumerate(self.snapshots):
-            print(f"\n快照 {i+1}: {snapshot['label']}")
+            print(f"\n快照 {i + 1}: {snapshot['label']}")
             print(f"  时间: {snapshot['timestamp']}")
             print(f"  RSS: {snapshot['rss_mb']:.1f}MB")
             print(f"  VMS: {snapshot['vms_mb']:.1f}MB")
@@ -363,7 +364,7 @@ class LargeProjectStrategy:
         batch_size = self.recommended_batch_size
         batches = []
         for i in range(0, len(file_paths), batch_size):
-            batches.append(file_paths[i:i + batch_size])
+            batches.append(file_paths[i : i + batch_size])
         return batches
 
     def get_sampled_files(self, file_paths: List[str]) -> List[str]:

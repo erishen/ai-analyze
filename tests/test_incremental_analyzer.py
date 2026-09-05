@@ -1,9 +1,9 @@
 """Tests for incremental_analyzer module - comprehensive"""
 
-import tempfile
 import os
+import tempfile
 
-from src.infrastructure.incremental_analyzer import IncrementalAnalyzer, FileHash, CacheMetadata
+from src.infrastructure.incremental_analyzer import CacheMetadata, FileHash, IncrementalAnalyzer
 
 
 class TestFileHash:

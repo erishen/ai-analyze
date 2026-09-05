@@ -4,12 +4,12 @@
 基于 FastAPI 提供 REST API 接口
 """
 
+import asyncio
 import json
 import logging
 import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
-import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -173,7 +173,7 @@ class AnalysisAPIService:
                 results["dependency"] = analyzer.analyze_project(files).to_dict()
 
             if "quality" in analysis_types:
-                from ..analyzers.quality_score import QualityScorer, QualityMetrics
+                from ..analyzers.quality_score import QualityMetrics, QualityScorer
 
                 scorer = QualityScorer()
                 metrics = QualityMetrics(

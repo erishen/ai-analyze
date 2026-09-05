@@ -13,10 +13,10 @@ if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
 from src.analyzers.ast_analyzer import (  # noqa: E402
-    PythonASTAnalyzer,
-    JavaScriptASTAnalyzer,
     ASTAnalyzerFactory,
+    JavaScriptASTAnalyzer,
     Language,
+    PythonASTAnalyzer,
     detect_language,
 )
 

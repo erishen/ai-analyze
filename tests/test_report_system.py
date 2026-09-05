@@ -11,13 +11,13 @@ if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
 from src.reports.report_system import (  # noqa: E402
-    HTMLReportGenerator,
+    ComparisonResult,
     HistoryManager,
+    HTMLReportGenerator,
     ReportComparator,
     ReportMetadata,
     TrendAnalysis,
     TrendDataPoint,
-    ComparisonResult,
 )
 
 
@@ -27,9 +27,7 @@ class TestReportMetadata:
         assert meta.timestamp != ""
 
     def test_custom_timestamp(self):
-        meta = ReportMetadata(
-            project_name="test", report_type="full", timestamp="2026-01-01"
-        )
+        meta = ReportMetadata(project_name="test", report_type="full", timestamp="2026-01-01")
         assert meta.timestamp == "2026-01-01"
 
     def test_to_dict(self):
@@ -156,18 +154,14 @@ class TestReportComparator:
     def test_compare_custom_metrics(self):
         before = {"a": {"b": 10}}
         after = {"a": {"b": 20}}
-        results = ReportComparator.compare(
-            before, after, metric_paths=["a.b"]
-        )
+        results = ReportComparator.compare(before, after, metric_paths=["a.b"])
         assert len(results) == 1
         assert results[0].is_improved is True
 
     def test_compare_missing_metric(self):
         before = {"a": 10}
         after = {"b": 20}
-        results = ReportComparator.compare(
-            before, after, metric_paths=["a"]
-        )
+        results = ReportComparator.compare(before, after, metric_paths=["a"])
         assert len(results) == 0
 
 

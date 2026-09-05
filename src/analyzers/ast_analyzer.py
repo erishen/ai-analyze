@@ -4,12 +4,12 @@ AST (Abstract Syntax Tree) 分析模块
 支持多语言代码复杂度分析、代码坏味道检测、控制流分析等
 """
 
+import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-import logging
 
 from .ast_rules import ASTRuleEngine
 
@@ -361,52 +361,58 @@ class PythonASTAnalyzer(ASTAnalyzer):
                         current_nesting += 1
                         max_nesting = max(max_nesting, current_nesting)
 
-                violations = self.rule_engine.check_all_thresholds({
-                    "COMPLEX001": func_lines,
-                    "COMPLEX005": func_params,
-                    "COMPLEX002": complexity,
-                    "COMPLEX003": max_nesting,
-                })
+                violations = self.rule_engine.check_all_thresholds(
+                    {
+                        "COMPLEX001": func_lines,
+                        "COMPLEX005": func_params,
+                        "COMPLEX002": complexity,
+                        "COMPLEX003": max_nesting,
+                    }
+                )
 
                 for v in violations:
                     desc = (
                         f"Function '{node.name}': {v['description']} "
                         f"(current: {v['value']}, threshold: {v['threshold']})"
                     )
-                    smells.append(CodeSmell(
-                        name=v["rule_name"],
-                        severity=v["severity"],
-                        location=f"{file_path}:{node.lineno}",
-                        description=desc,
-                        suggestion=v["suggestion"],
-                    ))
+                    smells.append(
+                        CodeSmell(
+                            name=v["rule_name"],
+                            severity=v["severity"],
+                            location=f"{file_path}:{node.lineno}",
+                            description=desc,
+                            suggestion=v["suggestion"],
+                        )
+                    )
 
             # 检测大类
             if isinstance(node, self.ast.ClassDef):
                 class_lines = (node.end_lineno or node.lineno) - node.lineno + 1
                 method_count = sum(
-                    1 for item in node.body
-                    if isinstance(item, (self.ast.FunctionDef, self.ast.AsyncFunctionDef))
+                    1 for item in node.body if isinstance(item, (self.ast.FunctionDef, self.ast.AsyncFunctionDef))
                 )
 
-                violations = self.rule_engine.check_all_thresholds({
-                    "COMPLEX004": class_lines,
-                    "DESIGN001": len(node.bases),
-                    "DESIGN002": method_count,
-                })
+                violations = self.rule_engine.check_all_thresholds(
+                    {
+                        "COMPLEX004": class_lines,
+                        "DESIGN001": len(node.bases),
+                        "DESIGN002": method_count,
+                    }
+                )
 
                 for v in violations:
                     desc = (
-                        f"Class '{node.name}': {v['description']} "
-                        f"(current: {v['value']}, threshold: {v['threshold']})"
+                        f"Class '{node.name}': {v['description']} (current: {v['value']}, threshold: {v['threshold']})"
                     )
-                    smells.append(CodeSmell(
-                        name=v["rule_name"],
-                        severity=v["severity"],
-                        location=f"{file_path}:{node.lineno}",
-                        description=desc,
-                        suggestion=v["suggestion"],
-                    ))
+                    smells.append(
+                        CodeSmell(
+                            name=v["rule_name"],
+                            severity=v["severity"],
+                            location=f"{file_path}:{node.lineno}",
+                            description=desc,
+                            suggestion=v["suggestion"],
+                        )
+                    )
 
         # 安全规则检测：eval() 使用
         for i, line in enumerate(lines, 1):
@@ -414,13 +420,15 @@ class PythonASTAnalyzer(ASTAnalyzer):
             if "eval(" in stripped and not stripped.startswith("#"):
                 rule = self.rule_engine.get_rule("SEC001")
                 if rule and rule.enabled:
-                    smells.append(CodeSmell(
-                        name=rule.name,
-                        severity=rule.severity.value,
-                        location=f"{file_path}:{i}",
-                        description=rule.description,
-                        suggestion=rule.suggestion,
-                    ))
+                    smells.append(
+                        CodeSmell(
+                            name=rule.name,
+                            severity=rule.severity.value,
+                            location=f"{file_path}:{i}",
+                            description=rule.description,
+                            suggestion=rule.suggestion,
+                        )
+                    )
 
         return smells
 
@@ -743,8 +751,8 @@ class BatchASTAnalyzer:
 
     def _analyze_parallel(self, file_paths: List[str]) -> List[FileAnalysisResult]:
         """并行分析 - 按文件大小智能调度"""
-        from concurrent.futures import ThreadPoolExecutor, as_completed
         import os
+        from concurrent.futures import ThreadPoolExecutor, as_completed
 
         # 按文件大小降序排序（大文件优先分配）
         indexed_files = []
@@ -798,6 +806,7 @@ class BatchASTAnalyzer:
     def _optimal_workers() -> int:
         """计算最优并行度"""
         import os
+
         cpu_count = os.cpu_count() or 4
         # AST 分析是 CPU 密集型 + I/O 混合，使用 CPU 核数的 1.5 倍
         return max(2, int(cpu_count * 1.5))

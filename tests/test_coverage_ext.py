@@ -8,14 +8,20 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.analyzers.similarity import (  # noqa: E402
-    CodeBlock, SimilarityDetector, SimilarityResult,
+from src.analyzers.ast_analyzer import (  # noqa: E402
+    BatchASTAnalyzer,
+    PythonASTAnalyzer,
+    detect_language,
 )
 from src.analyzers.quality_score import (  # noqa: E402
-    QualityScorer, QualityMetrics, QualityScore,
+    QualityMetrics,
+    QualityScore,
+    QualityScorer,
 )
-from src.analyzers.ast_analyzer import (  # noqa: E402
-    BatchASTAnalyzer, PythonASTAnalyzer, detect_language,
+from src.analyzers.similarity import (  # noqa: E402
+    CodeBlock,
+    SimilarityDetector,
+    SimilarityResult,
 )
 
 
@@ -152,9 +158,7 @@ class TestBatchASTAnalyzer(unittest.TestCase):
         self.project_dir = Path(self.temp_dir) / "project"
         self.project_dir.mkdir()
         for i in range(5):
-            (self.project_dir / f"mod_{i}.py").write_text(
-                f"def func_{i}(x):\n    return x + {i}\n", encoding="utf-8"
-            )
+            (self.project_dir / f"mod_{i}.py").write_text(f"def func_{i}(x):\n    return x + {i}\n", encoding="utf-8")
 
     def test_sequential(self):
         analyzer = BatchASTAnalyzer()
@@ -193,6 +197,7 @@ class TestCognitiveComplexity(unittest.TestCase):
 
     def _analyze(self, code):
         import ast
+
         tree = ast.parse(code)
         return self.analyzer._compute_cognitive_complexity(tree)
 
@@ -218,10 +223,12 @@ class TestCognitiveComplexity(unittest.TestCase):
 
     def test_analyze_file_uses_cognitive(self):
         tmpdir = tempfile.mkdtemp()
-        code = ("def f(x):\n    if x > 0:\n"
-                "        for i in range(x):\n"
-                "            if i % 2:\n"
-                "                pass\n    return x\n")
+        code = (
+            "def f(x):\n    if x > 0:\n"
+            "        for i in range(x):\n"
+            "            if i % 2:\n"
+            "                pass\n    return x\n"
+        )
         path = Path(tmpdir) / "test.py"
         path.write_text(code, encoding="utf-8")
         result = self.analyzer.analyze_file(str(path))

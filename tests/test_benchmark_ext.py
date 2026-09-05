@@ -11,7 +11,9 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.infrastructure.benchmark import (  # noqa: E402
-    Benchmark, BenchmarkResult, PerformanceComparison,
+    Benchmark,
+    BenchmarkResult,
+    PerformanceComparison,
 )
 
 
@@ -94,6 +96,7 @@ class TestBenchmarkRunWithException(unittest.TestCase):
             call_count += 1
             if call_count <= 2:
                 raise RuntimeError("test error")
+
         result = bm.run(failing_func, iterations=5, name="failing")
         self.assertLessEqual(result.iterations, 5)
 

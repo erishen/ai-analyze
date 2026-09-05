@@ -46,13 +46,34 @@ class LanguageBackend(ABC):
         """分析项目中的所有文件"""
         results: list[FileAnalysisResult] = []
         supported_ext = {
-            ".py", ".js", ".ts", ".jsx", ".tsx", ".go", ".java",
-            ".cpp", ".cc", ".c", ".h", ".rs", ".rb", ".php",
+            ".py",
+            ".js",
+            ".ts",
+            ".jsx",
+            ".tsx",
+            ".go",
+            ".java",
+            ".cpp",
+            ".cc",
+            ".c",
+            ".h",
+            ".rs",
+            ".rb",
+            ".php",
         }
         skip_dirs = {
-            ".git", "node_modules", "__pycache__", ".venv", "venv",
-            ".mypy_cache", ".ruff_cache", ".tox", "dist", "build",
-            ".eggs", "*.egg-info",
+            ".git",
+            "node_modules",
+            "__pycache__",
+            ".venv",
+            "venv",
+            ".mypy_cache",
+            ".ruff_cache",
+            ".tox",
+            "dist",
+            "build",
+            ".eggs",
+            "*.egg-info",
         }
 
         for root, dirs, filenames in os.walk(project_path):

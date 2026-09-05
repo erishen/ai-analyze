@@ -4,10 +4,10 @@
 基于多维度指标计算技术债务评分和修复建议
 """
 
+import logging
 import re
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -255,7 +255,7 @@ class TechDebtAnalyzer:
                 category="todo",
                 name="Unresolved TODO",
                 description="TODO comment indicates unfinished work",
-                patterns=[r'#\s*TODO', r'#\s*FIXME', r'#\s*HACK', r'#\s*XXX'],
+                patterns=[r"#\s*TODO", r"#\s*FIXME", r"#\s*HACK", r"#\s*XXX"],
                 effort_hours=2.0,
                 priority="low",
             ),
@@ -263,7 +263,7 @@ class TechDebtAnalyzer:
                 category="todo",
                 name="Unresolved TODO (JS/TS)",
                 description="TODO comment indicates unfinished work",
-                patterns=[r'//\s*TODO', r'//\s*FIXME', r'//\s*HACK'],
+                patterns=[r"//\s*TODO", r"//\s*FIXME", r"//\s*HACK"],
                 effort_hours=2.0,
                 priority="low",
                 languages=["js", "ts", "java", "go"],
@@ -273,7 +273,7 @@ class TechDebtAnalyzer:
                 category="dead_code",
                 name="Commented Out Code",
                 description="Commented-out code should be removed",
-                patterns=[r'^\s*#\s*(def|class|import|from|if|for|while|return)\s'],
+                patterns=[r"^\s*#\s*(def|class|import|from|if|for|while|return)\s"],
                 effort_hours=0.5,
                 priority="low",
             ),
@@ -282,7 +282,7 @@ class TechDebtAnalyzer:
                 category="maintainability",
                 name="Long Function Hint",
                 description="Too many nested blocks suggest long function",
-                patterns=[r'^\s{16,}\w+'],
+                patterns=[r"^\s{16,}\w+"],
                 effort_hours=3.0,
                 priority="medium",
             ),
@@ -291,7 +291,7 @@ class TechDebtAnalyzer:
                 category="error_handling",
                 name="Bare Except",
                 description="Bare except catches all exceptions silently",
-                patterns=[r'except\s*:', r'except\s+Exception\s*:'],
+                patterns=[r"except\s*:", r"except\s+Exception\s*:"],
                 effort_hours=1.0,
                 priority="high",
             ),
@@ -299,7 +299,7 @@ class TechDebtAnalyzer:
                 category="error_handling",
                 name="Pass in Except",
                 description="Silently ignoring exceptions with pass",
-                patterns=[r'except\s+\w+.*:\s*\n\s+pass'],
+                patterns=[r"except\s+\w+.*:\s*\n\s+pass"],
                 effort_hours=1.5,
                 priority="high",
             ),
@@ -317,7 +317,7 @@ class TechDebtAnalyzer:
                 category="design",
                 name="Many Function Parameters",
                 description="Function with many parameters is hard to maintain",
-                patterns=[r'def\s+\w+\s*\([^)]{80,}\)'],
+                patterns=[r"def\s+\w+\s*\([^)]{80,}\)"],
                 effort_hours=2.0,
                 priority="medium",
             ),
@@ -335,7 +335,7 @@ class TechDebtAnalyzer:
                 category="deprecation",
                 name="Deprecated API",
                 description="Use of deprecated function or method",
-                patterns=[r'\.warn\s*\(', r'deprecat', r'DeprecationWarning'],
+                patterns=[r"\.warn\s*\(", r"deprecat", r"DeprecationWarning"],
                 effort_hours=1.5,
                 priority="medium",
             ),

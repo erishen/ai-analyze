@@ -8,7 +8,7 @@ _project_root = str(Path(__file__).parent.parent)
 if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
-from src.analyzers.tech_debt import TechDebtAnalyzer, DebtItem, TechDebtResult  # noqa: E402
+from src.analyzers.tech_debt import DebtItem, TechDebtAnalyzer, TechDebtResult  # noqa: E402
 
 
 class TestTechDebtAnalyzer:
@@ -81,9 +81,7 @@ class TestTechDebtAnalyzer:
 
     def test_complexity_debt(self):
         code = "def simple():\n    pass\n"
-        items = self.analyzer.analyze_file(
-            "complex.py", code, {"cyclomatic_complexity": 25}
-        )
+        items = self.analyzer.analyze_file("complex.py", code, {"cyclomatic_complexity": 25})
         assert any(i.name == "High Cyclomatic Complexity" for i in items)
 
     def test_result_to_dict(self):

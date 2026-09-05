@@ -1,7 +1,7 @@
 from .ast_analyzer import ASTAnalyzerFactory, detect_language
-from .security_scanner import SecurityScanner
-from .quality_score import QualityScorer, QualityMetrics
-from .similarity import SimilarityDetector, CodeBlock
-from .tech_debt import TechDebtAnalyzer
 from .dependency_graph import DependencyAnalyzer
 from .performance_analyzer import PerformanceAnalyzer
+from .quality_score import QualityMetrics, QualityScorer
+from .security_scanner import SecurityScanner
+from .similarity import CodeBlock, SimilarityDetector
+from .tech_debt import TechDebtAnalyzer

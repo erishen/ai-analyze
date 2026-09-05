@@ -3,17 +3,10 @@
 PR Diff 分析测试
 """
 
-import json
-from unittest.mock import patch, MagicMock
-
-import pytest
-
 from src.tools.pr_diff import (
-    parse_git_diff,
-    DiffHunk,
-    FileDiff,
     _assess_risk,
     _generate_recommendation,
+    parse_git_diff,
 )
 
 

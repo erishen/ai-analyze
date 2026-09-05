@@ -4,11 +4,11 @@
 基于 AST 和模式匹配分析潜在性能问题
 """
 
+import logging
 import re
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -154,9 +154,7 @@ class PerformanceAnalyzer:
     def patterns(self) -> List[PerformancePattern]:
         return [p for p in self._patterns if p.enabled]
 
-    def analyze_file(
-        self, file_path: str, content: str
-    ) -> List[PerformanceIssue]:
+    def analyze_file(self, file_path: str, content: str) -> List[PerformanceIssue]:
         """分析单个文件"""
         issues: List[PerformanceIssue] = []
         lines = content.split("\n")
@@ -169,9 +167,7 @@ class PerformanceAnalyzer:
                 try:
                     compiled = re.compile(regex_str)
                 except re.error:
-                    self.logger.warning(
-                        "Invalid regex in pattern %s: %s", pattern.id, regex_str
-                    )
+                    self.logger.warning("Invalid regex in pattern %s: %s", pattern.id, regex_str)
                     continue
 
                 for line_num, line in enumerate(lines, 1):
@@ -193,9 +189,7 @@ class PerformanceAnalyzer:
 
         return issues
 
-    def analyze_project(
-        self, files: Dict[str, str], max_issues: int = 300
-    ) -> PerformanceAnalysisResult:
+    def analyze_project(self, files: Dict[str, str], max_issues: int = 300) -> PerformanceAnalysisResult:
         """分析项目"""
         import time
 
@@ -242,11 +236,11 @@ class PerformanceAnalyzer:
                 category=PerformanceCategory.IO,
                 impact=ImpactLevel.HIGH,
                 patterns=[
-                    r'for\s+.*:\s*\n.*open\s*\(',
-                    r'for\s+.*:\s*\n.*\.read\s*\(',
-                    r'for\s+.*:\s*\n.*\.write\s*\(',
-                    r'for\s+.*:\s*\n.*requests\.',
-                    r'for\s+.*:\s*\n.*urllib',
+                    r"for\s+.*:\s*\n.*open\s*\(",
+                    r"for\s+.*:\s*\n.*\.read\s*\(",
+                    r"for\s+.*:\s*\n.*\.write\s*\(",
+                    r"for\s+.*:\s*\n.*requests\.",
+                    r"for\s+.*:\s*\n.*urllib",
                 ],
                 languages=["py"],
                 description="I/O operations inside loop can be batched",
@@ -260,7 +254,7 @@ class PerformanceAnalyzer:
                 category=PerformanceCategory.ALGORITHM,
                 impact=ImpactLevel.LOW,
                 patterns=[
-                    r'\.append\s*\([^)]*\)\s*$',
+                    r"\.append\s*\([^)]*\)\s*$",
                 ],
                 languages=["py"],
                 description="List comprehension is faster than append in loop",
@@ -288,8 +282,8 @@ class PerformanceAnalyzer:
                 category=PerformanceCategory.DATABASE,
                 impact=ImpactLevel.CRITICAL,
                 patterns=[
-                    r'for\s+.*:\s*\n.*\.(execute|query|find|filter)\s*\(',
-                    r'while\s+.*:\s*\n.*\.(execute|query|find|filter)\s*\(',
+                    r"for\s+.*:\s*\n.*\.(execute|query|find|filter)\s*\(",
+                    r"while\s+.*:\s*\n.*\.(execute|query|find|filter)\s*\(",
                 ],
                 languages=["py"],
                 description="Database query inside loop causes N+1 problem",
@@ -303,7 +297,7 @@ class PerformanceAnalyzer:
                 category=PerformanceCategory.ALGORITHM,
                 impact=ImpactLevel.LOW,
                 patterns=[
-                    r'global\s+\w+',
+                    r"global\s+\w+",
                 ],
                 languages=["py"],
                 description="Global variable lookups are slower than local",
@@ -317,7 +311,7 @@ class PerformanceAnalyzer:
                 category=PerformanceCategory.CONCURRENCY,
                 impact=ImpactLevel.MEDIUM,
                 patterns=[
-                    r'time\.sleep\s*\(',
+                    r"time\.sleep\s*\(",
                 ],
                 languages=["py"],
                 description="Blocking sleep wastes thread time",
@@ -331,8 +325,8 @@ class PerformanceAnalyzer:
                 category=PerformanceCategory.MEMORY,
                 impact=ImpactLevel.MEDIUM,
                 patterns=[
-                    r'range\s*\(\s*\d{5,}',
-                    r'\[.*for.*in\s+range\s*\(\s*\d{5,}',
+                    r"range\s*\(\s*\d{5,}",
+                    r"\[.*for.*in\s+range\s*\(\s*\d{5,}",
                 ],
                 languages=["py"],
                 description="Creating large lists consumes memory",
@@ -346,7 +340,7 @@ class PerformanceAnalyzer:
                 category=PerformanceCategory.CACHING,
                 impact=ImpactLevel.MEDIUM,
                 patterns=[
-                    r'@property\s*\n\s*def\s+\w+.*\n.*\n.*for\s+',
+                    r"@property\s*\n\s*def\s+\w+.*\n.*\n.*for\s+",
                 ],
                 languages=["py"],
                 description="Expensive property computed on every access",
@@ -360,7 +354,7 @@ class PerformanceAnalyzer:
                 category=PerformanceCategory.NETWORK,
                 impact=ImpactLevel.HIGH,
                 patterns=[
-                    r'requests\.(get|post|put)\s*\([^)]*\)\s*$',
+                    r"requests\.(get|post|put)\s*\([^)]*\)\s*$",
                 ],
                 languages=["py"],
                 description="Synchronous HTTP call blocks the thread",
@@ -374,7 +368,7 @@ class PerformanceAnalyzer:
                 category=PerformanceCategory.ALGORITHM,
                 impact=ImpactLevel.HIGH,
                 patterns=[
-                    r'for\s+.*:\s*\n(\s+)for\s+',
+                    r"for\s+.*:\s*\n(\s+)for\s+",
                 ],
                 languages=["py", "js", "ts", "go", "java"],
                 description="Nested loops may indicate O(n^2) complexity",

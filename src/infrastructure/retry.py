@@ -3,13 +3,13 @@
 用于处理 API 调用、网络请求等可能失败的操作
 """
 
-import time
 import logging
-from typing import Callable, Any, Optional, Type, Tuple
-from functools import wraps
 import random
+import time
+from functools import wraps
+from typing import Any, Callable, Optional, Tuple, Type
 
-from .exceptions import APIException, APITimeoutException, APIRateLimitException, TimeoutException
+from .exceptions import APIException, APIRateLimitException, APITimeoutException, TimeoutException
 
 
 class RetryConfig:
@@ -190,7 +190,8 @@ class RetryManager:
                     wait_time = self.config.get_delay(attempt)
 
                     self.logger.warning(
-                        f"执行失败 (尝试 {attempt + 1}/{self.config.max_retries + 1}): {e}. " f"将在 {wait_time:.1f} 秒后重试..."
+                        f"执行失败 (尝试 {attempt + 1}/{self.config.max_retries + 1}): {e}. "
+                        f"将在 {wait_time:.1f} 秒后重试..."
                     )
 
                     if on_retry:

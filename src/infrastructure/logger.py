@@ -5,8 +5,8 @@
 
 import logging
 import logging.handlers
-from pathlib import Path
 import sys
+from pathlib import Path
 from typing import Dict
 
 
@@ -72,7 +72,10 @@ class UnifiedLogger:
 
         # 文件处理器（DEBUG 及以上）
         file_handler = logging.handlers.RotatingFileHandler(
-            LoggerConfig.LOG_FILE, maxBytes=10 * 1024 * 1024, backupCount=5, encoding="utf-8"  # 10MB
+            LoggerConfig.LOG_FILE,
+            maxBytes=10 * 1024 * 1024,
+            backupCount=5,
+            encoding="utf-8",  # 10MB
         )
         file_handler.setLevel(LoggerConfig.DEBUG)
         file_formatter = logging.Formatter(LoggerConfig.FILE_FORMAT)
@@ -81,7 +84,10 @@ class UnifiedLogger:
 
         # 错误文件处理器（ERROR 及以上）
         error_handler = logging.handlers.RotatingFileHandler(
-            LoggerConfig.ERROR_LOG_FILE, maxBytes=10 * 1024 * 1024, backupCount=5, encoding="utf-8"  # 10MB
+            LoggerConfig.ERROR_LOG_FILE,
+            maxBytes=10 * 1024 * 1024,
+            backupCount=5,
+            encoding="utf-8",  # 10MB
         )
         error_handler.setLevel(LoggerConfig.ERROR)
         error_formatter = logging.Formatter(LoggerConfig.FILE_FORMAT)

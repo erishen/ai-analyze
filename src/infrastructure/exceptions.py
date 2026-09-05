@@ -3,7 +3,7 @@
 用于更好的错误处理和分类
 """
 
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 
 class AIAnalyzeException(Exception):

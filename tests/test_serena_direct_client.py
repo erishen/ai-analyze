@@ -4,15 +4,13 @@ SerenaClient (src/serena_client.py) Mock 单元测试
 SerenaClient 现在通过 MCP 协议通信，不再直接 import serena
 """
 
-import json
 import os
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
 from src.backends.serena_client import SerenaClient, _check_serena_available
-
 
 # ==================== _check_serena_available 测试 ====================
 
@@ -154,6 +152,7 @@ class TestSerenaClientRunAsync:
 
     def test_run_async_in_sync_context(self, client):
         """在同步上下文中运行异步函数"""
+
         async def mock_coro():
             return 42
 
@@ -162,6 +161,7 @@ class TestSerenaClientRunAsync:
 
     def test_run_async_with_exception(self, client):
         """异步函数抛出异常时正确传播"""
+
         async def mock_coro():
             raise ValueError("test error")
 

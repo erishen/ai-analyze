@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.infrastructure.benchmark import BenchmarkResult, Benchmark
+from src.infrastructure.benchmark import Benchmark, BenchmarkResult
 
 
 class TestBenchmarkResult:

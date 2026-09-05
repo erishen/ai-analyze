@@ -3,11 +3,11 @@
 用于显示分析进度和性能指标
 """
 
-import time
-import sys
-from typing import Any, Dict, Optional
-from dataclasses import dataclass
 import logging
+import sys
+import time
+from dataclasses import dataclass
+from typing import Any, Dict, Optional
 
 
 @dataclass
@@ -210,9 +210,9 @@ class PerformanceMonitor:
 
     def print_metrics(self):
         """打印指标"""
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"性能指标: {self.name}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         metrics = self.get_metrics()
         for key, value in metrics.items():
@@ -223,7 +223,7 @@ class PerformanceMonitor:
             else:
                 print(f"  {key}: {value}")
 
-        print(f"{'='*60}\n")
+        print(f"{'=' * 60}\n")
 
 
 class ContextProgressBar:

@@ -5,13 +5,13 @@
 
 import json
 import logging
-from pathlib import Path
-from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
-from ..analyzers.similarity import SimilarityDetector, CodeBlock
-from ..analyzers.quality_score import QualityScorer, QualityMetrics
+from ..analyzers.quality_score import QualityMetrics, QualityScorer
+from ..analyzers.similarity import CodeBlock, SimilarityDetector
 
 
 @dataclass
@@ -155,7 +155,9 @@ class AnalysisIntegrator:
                 ],
             }
 
-            self.logger.info(f"相似性分析完成: {duplicate_pairs} 个重复, " f"{similar_pairs} 个相似, 重复率 {duplication_ratio:.1%}")
+            self.logger.info(
+                f"相似性分析完成: {duplicate_pairs} 个重复, {similar_pairs} 个相似, 重复率 {duplication_ratio:.1%}"
+            )
 
             return result
 

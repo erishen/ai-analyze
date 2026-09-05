@@ -5,17 +5,18 @@
 
 import sys
 import tempfile
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 # 添加项目路径
 sys.path.insert(0, str(Path(__file__).parent.parent))
-sys.path.insert(0, str(Path(__file__).parent.parent / 'tools'))
+sys.path.insert(0, str(Path(__file__).parent.parent / "tools"))
 
-from tools.ast_analyzer_tool import ASTAnalysisTool  # noqa: E402
 from src.server.analysis_integration import (  # noqa: E402
-    AnalysisIntegrator, IntegratedAnalysisResult,
+    AnalysisIntegrator,
+    IntegratedAnalysisResult,
 )
+from tools.ast_analyzer_tool import ASTAnalysisTool  # noqa: E402
 
 
 def test_ast_filename_format():
@@ -75,7 +76,7 @@ def test_integrated_filename_format():
             project_path=str(project_dir),
             unified_analysis={"files": []},
             similarity_analysis={"total_blocks": 0},
-            quality_scores={"overall_score": 0}
+            quality_scores={"overall_score": 0},
         )
 
         # 保存结果
@@ -124,9 +125,9 @@ def test_filename_components():
 
         # 提取组件
         analysis_type = parts[0]  # ast, integrated, unified
-        project_name = parts[2]   # 项目名
-        date_part = parts[3]      # 日期 (YYYYMMDD)
-        time_part = parts[4]      # 时间 (HHMMSS)
+        project_name = parts[2]  # 项目名
+        date_part = parts[3]  # 日期 (YYYYMMDD)
+        time_part = parts[4]  # 时间 (HHMMSS)
 
         print(f"  - 分析类型: {analysis_type}")
         print(f"  - 项目名: {project_name}")
@@ -159,5 +160,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"❌ 测试出错: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

@@ -1,9 +1,9 @@
 """Tests for memory module - MemoryInfo, MemoryMonitor, MemoryLimiter"""
 
 from datetime import datetime
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-from src.infrastructure.memory import MemoryInfo, MemoryMonitor, MemoryLimiter
+from src.infrastructure.memory import MemoryInfo, MemoryLimiter, MemoryMonitor
 
 
 class TestMemoryInfo:

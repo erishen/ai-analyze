@@ -7,7 +7,6 @@ AI-Analyze MCP Server
 import dataclasses
 import json
 import os
-import time
 from pathlib import Path
 from typing import Any
 
@@ -23,7 +22,11 @@ def _load_project_files(project_path: str, max_files: int = 500) -> dict[str, st
     supported_ext = {".py", ".js", ".ts", ".go", ".java", ".jsx", ".tsx", ".rs", ".cpp", ".c", ".rb", ".php"}
 
     for root, dirs, filenames in os.walk(project_path):
-        dirs[:] = [d for d in dirs if d not in {".git", "node_modules", "__pycache__", ".venv", "venv", ".mypy_cache", ".ruff_cache"}]
+        dirs[:] = [
+            d
+            for d in dirs
+            if d not in {".git", "node_modules", "__pycache__", ".venv", "venv", ".mypy_cache", ".ruff_cache"}
+        ]
         for filename in filenames:
             ext = os.path.splitext(filename)[1]
             if ext not in supported_ext:
@@ -153,21 +156,13 @@ def analyze_project(project_path: str, analysis_types: str = "all") -> str:
             "total_code_smells": all_smells,
             "average_cyclomatic_complexity": avg_complexity,
             "deep_nesting_count": nesting_count,
-            "code_smells_by_severity": dict(
-                sorted(severity_count.items(), key=lambda x: -x[1])
-            ),
-            "most_common_smell_types": dict(
-                sorted(smell_types.items(), key=lambda x: -x[1])[:10]
-            ),
+            "code_smells_by_severity": dict(sorted(severity_count.items(), key=lambda x: -x[1])),
+            "most_common_smell_types": dict(sorted(smell_types.items(), key=lambda x: -x[1])[:10]),
             "most_complex_files": [
                 {
                     "file": f["file_path"].replace(project_path, "").lstrip("/"),
-                    "cyclomatic_complexity": f.get("overall_complexity", {}).get(
-                        "cyclomatic_complexity", 0
-                    ),
-                    "lines_of_code": f.get("overall_complexity", {}).get(
-                        "lines_of_code", 0
-                    ),
+                    "cyclomatic_complexity": f.get("overall_complexity", {}).get("cyclomatic_complexity", 0),
+                    "lines_of_code": f.get("overall_complexity", {}).get("lines_of_code", 0),
                     "functions": len(f.get("functions", [])),
                     "code_smells": len(f.get("code_smells", [])),
                 }
@@ -195,19 +190,16 @@ def analyze_project(project_path: str, analysis_types: str = "all") -> str:
                     "classes": 0,
                 }
             results["ast"]["language_breakdown"][lang]["files"] += 1
-            results["ast"]["language_breakdown"][lang]["functions"] += len(
-                f.get("functions", [])
-            )
-            results["ast"]["language_breakdown"][lang]["classes"] += len(
-                f.get("classes", [])
-            )
+            results["ast"]["language_breakdown"][lang]["functions"] += len(f.get("functions", []))
+            results["ast"]["language_breakdown"][lang]["classes"] += len(f.get("classes", []))
 
     return json.dumps(results, ensure_ascii=False, indent=2, default=str)
 
 
 @mcp.tool()
 def scan_security(project_path: str, max_findings: int = 100) -> str:
-    """Scan a project for security vulnerabilities. Detects injection, auth issues, sensitive data exposure, misconfigurations, and more.
+    """Scan a project for security vulnerabilities. Detects injection, auth
+    issues, sensitive data exposure, misconfigurations, and more.
 
     Args:
         project_path: Absolute path to the project directory
@@ -229,7 +221,8 @@ def scan_security(project_path: str, max_findings: int = 100) -> str:
 
 @mcp.tool()
 def analyze_quality(project_path: str) -> str:
-    """Analyze code quality and generate a quality score (0-100) with grade (A-F). Covers complexity, maintainability, reliability, and security dimensions.
+    """Analyze code quality and generate a quality score (0-100) with grade (A-F).
+    Covers complexity, maintainability, reliability, and security dimensions.
 
     Args:
         project_path: Absolute path to the project directory
@@ -281,7 +274,8 @@ def analyze_quality(project_path: str) -> str:
 
 @mcp.tool()
 def analyze_ast(file_path: str) -> str:
-    """Analyze a single source file using AST (Abstract Syntax Tree). Returns functions, classes, complexity metrics, code smells, and import dependencies.
+    """Analyze a single source file using AST (Abstract Syntax Tree). Returns
+    functions, classes, complexity metrics, code smells, and import dependencies.
 
     Args:
         file_path: Absolute path to the source file to analyze
@@ -350,8 +344,16 @@ def detect_similarities(project_path: str, min_lines: int = 6, similarity_thresh
         "duplicates": [
             {
                 "blocks": [
-                    {"file": pair.block1.file_path, "start_line": pair.block1.start_line, "end_line": pair.block1.end_line},
-                    {"file": pair.block2.file_path, "start_line": pair.block2.start_line, "end_line": pair.block2.end_line},
+                    {
+                        "file": pair.block1.file_path,
+                        "start_line": pair.block1.start_line,
+                        "end_line": pair.block1.end_line,
+                    },
+                    {
+                        "file": pair.block2.file_path,
+                        "start_line": pair.block2.start_line,
+                        "end_line": pair.block2.end_line,
+                    },
                 ],
                 "similarity": pair.similarity,
             }
@@ -360,8 +362,16 @@ def detect_similarities(project_path: str, min_lines: int = 6, similarity_thresh
         "similar_pairs": [
             {
                 "blocks": [
-                    {"file": pair.block1.file_path, "start_line": pair.block1.start_line, "end_line": pair.block1.end_line},
-                    {"file": pair.block2.file_path, "start_line": pair.block2.start_line, "end_line": pair.block2.end_line},
+                    {
+                        "file": pair.block1.file_path,
+                        "start_line": pair.block1.start_line,
+                        "end_line": pair.block1.end_line,
+                    },
+                    {
+                        "file": pair.block2.file_path,
+                        "start_line": pair.block2.start_line,
+                        "end_line": pair.block2.end_line,
+                    },
                 ],
                 "similarity": pair.similarity,
             }
@@ -374,7 +384,9 @@ def detect_similarities(project_path: str, min_lines: int = 6, similarity_thresh
 
 @mcp.tool()
 def analyze_dependencies(project_path: str) -> str:
-    """Analyze module dependencies and generate a dependency graph. Shows import relationships between files, identifies highly-coupled modules and circular dependencies.
+    """Analyze module dependencies and generate a dependency graph. Shows import
+    relationships between files, identifies highly-coupled modules and circular
+    dependencies.
 
     Args:
         project_path: Absolute path to the project directory
@@ -402,18 +414,20 @@ def get_version() -> str:
 @mcp.resource("ai-analyze://capabilities")
 def get_capabilities() -> str:
     """Get the list of analysis capabilities"""
-    return json.dumps({
-        "tools": [
-            "analyze_project - Full project analysis (security, quality, dependency, AST)",
-            "scan_security - Security vulnerability scanning",
-            "analyze_quality - Code quality scoring (0-100, A-F grade)",
-            "analyze_ast - Single file AST analysis (complexity, code smells)",
-            "detect_similarities - Duplicate and similar code detection",
-            "analyze_dependencies - Module dependency graph analysis",
-        ],
-        "supported_languages": ["Python", "JavaScript", "TypeScript", "Go", "Java"],
-        "version": "0.3.0",
-    })
+    return json.dumps(
+        {
+            "tools": [
+                "analyze_project - Full project analysis (security, quality, dependency, AST)",
+                "scan_security - Security vulnerability scanning",
+                "analyze_quality - Code quality scoring (0-100, A-F grade)",
+                "analyze_ast - Single file AST analysis (complexity, code smells)",
+                "detect_similarities - Duplicate and similar code detection",
+                "analyze_dependencies - Module dependency graph analysis",
+            ],
+            "supported_languages": ["Python", "JavaScript", "TypeScript", "Go", "Java"],
+            "version": "0.3.0",
+        }
+    )
 
 
 def main(transport: str = "stdio", host: str = "0.0.0.0", port: int = 8000):

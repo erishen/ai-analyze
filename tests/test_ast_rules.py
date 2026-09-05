@@ -22,7 +22,6 @@ from src.analyzers.ast_rules import (  # noqa: E402
     RuleSeverity,
 )
 
-
 # ==================== 枚举测试 ====================
 
 

@@ -5,10 +5,10 @@ AST 可视化模块
 """
 
 import json
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
-import logging
 
 from ..analyzers.ast_analyzer import (
     ClassInfo,
@@ -57,17 +57,21 @@ class ASTVisualizer:
         if result.imports:
             import_children = []
             for imp in result.imports:
-                import_children.append({
-                    "name": imp,
-                    "type": "import",
+                import_children.append(
+                    {
+                        "name": imp,
+                        "type": "import",
+                        "severity": "info",
+                    }
+                )
+            children.append(
+                {
+                    "name": f"Imports ({len(result.imports)})",
+                    "type": "import_group",
                     "severity": "info",
-                })
-            children.append({
-                "name": f"Imports ({len(result.imports)})",
-                "type": "import_group",
-                "severity": "info",
-                "children": import_children,
-            })
+                    "children": import_children,
+                }
+            )
 
         # 添加类节点
         for cls in result.classes:
@@ -78,9 +82,7 @@ class ASTVisualizer:
         for func in result.functions:
             # 跳过已属于类的方法
             is_method = any(
-                func.name == m.name and func.line_start == m.line_start
-                for cls in result.classes
-                for m in cls.methods
+                func.name == m.name and func.line_start == m.line_start for cls in result.classes for m in cls.methods
             )
             if not is_method:
                 children.append(self._build_function_node(func))
@@ -89,19 +91,23 @@ class ASTVisualizer:
         if result.code_smells:
             smell_children = []
             for smell in result.code_smells:
-                smell_children.append({
-                    "name": f"{smell.name} (L{smell.location.split(':')[-1]})",
-                    "type": "code_smell",
-                    "severity": smell.severity,
-                    "detail": smell.description,
-                    "suggestion": smell.suggestion,
-                })
-            children.append({
-                "name": f"Code Smells ({len(result.code_smells)})",
-                "type": "smell_group",
-                "severity": self._worst_severity(result.code_smells),
-                "children": smell_children,
-            })
+                smell_children.append(
+                    {
+                        "name": f"{smell.name} (L{smell.location.split(':')[-1]})",
+                        "type": "code_smell",
+                        "severity": smell.severity,
+                        "detail": smell.description,
+                        "suggestion": smell.suggestion,
+                    }
+                )
+            children.append(
+                {
+                    "name": f"Code Smells ({len(result.code_smells)})",
+                    "type": "smell_group",
+                    "severity": self._worst_severity(result.code_smells),
+                    "children": smell_children,
+                }
+            )
 
         tree = {
             "name": Path(result.file_path).name,
@@ -120,11 +126,13 @@ class ASTVisualizer:
         # 属性节点
         prop_children = []
         for prop in cls.properties:
-            prop_children.append({
-                "name": prop,
-                "type": "property",
-                "severity": "info",
-            })
+            prop_children.append(
+                {
+                    "name": prop,
+                    "type": "property",
+                    "severity": "info",
+                }
+            )
 
         children = method_children + prop_children
 
@@ -132,18 +140,22 @@ class ASTVisualizer:
         if cls_smells:
             smell_children = []
             for smell in cls_smells:
-                smell_children.append({
-                    "name": f"{smell.name}",
-                    "type": "code_smell",
-                    "severity": smell.severity,
-                    "detail": smell.description,
-                })
-            children.append({
-                "name": f"Smells ({len(cls_smells)})",
-                "type": "smell_group",
-                "severity": self._worst_severity(cls_smells),
-                "children": smell_children,
-            })
+                smell_children.append(
+                    {
+                        "name": f"{smell.name}",
+                        "type": "code_smell",
+                        "severity": smell.severity,
+                        "detail": smell.description,
+                    }
+                )
+            children.append(
+                {
+                    "name": f"Smells ({len(cls_smells)})",
+                    "type": "smell_group",
+                    "severity": self._worst_severity(cls_smells),
+                    "children": smell_children,
+                }
+            )
 
         return {
             "name": f"class {cls.name}",
@@ -203,34 +215,37 @@ class ASTVisualizer:
 
         # 参数节点
         if func.parameters:
-            param_children = [
-                {"name": p, "type": "parameter", "severity": "info"}
-                for p in func.parameters
-            ]
-            children.append({
-                "name": f"Parameters ({len(func.parameters)})",
-                "type": "param_group",
-                "severity": "high" if len(func.parameters) > 5 else "info",
-                "children": param_children,
-            })
+            param_children = [{"name": p, "type": "parameter", "severity": "info"} for p in func.parameters]
+            children.append(
+                {
+                    "name": f"Parameters ({len(func.parameters)})",
+                    "type": "param_group",
+                    "severity": "high" if len(func.parameters) > 5 else "info",
+                    "children": param_children,
+                }
+            )
 
         # 代码坏味道
         if func.code_smells:
             smell_children = []
             for smell in func.code_smells:
-                smell_children.append({
-                    "name": smell.name,
-                    "type": "code_smell",
-                    "severity": smell.severity,
-                    "detail": smell.description,
-                    "suggestion": smell.suggestion,
-                })
-            children.append({
-                "name": f"Smells ({len(func.code_smells)})",
-                "type": "smell_group",
-                "severity": self._worst_severity(func.code_smells),
-                "children": smell_children,
-            })
+                smell_children.append(
+                    {
+                        "name": smell.name,
+                        "type": "code_smell",
+                        "severity": smell.severity,
+                        "detail": smell.description,
+                        "suggestion": smell.suggestion,
+                    }
+                )
+            children.append(
+                {
+                    "name": f"Smells ({len(func.code_smells)})",
+                    "type": "smell_group",
+                    "severity": self._worst_severity(func.code_smells),
+                    "children": smell_children,
+                }
+            )
 
         return {
             "name": f"{prefix}{static}{func.name}({params}){ret}",
@@ -314,16 +329,18 @@ class ASTVisualizer:
             }
 
             for func in result.functions:
-                file_data["functions"].append({
-                    "name": func.name,
-                    "line_start": func.line_start,
-                    "line_end": func.line_end,
-                    "cyclomatic": func.complexity.cyclomatic_complexity,
-                    "cognitive": func.complexity.cognitive_complexity,
-                    "nesting": func.complexity.nesting_depth,
-                    "loc": func.complexity.lines_of_code,
-                    "params": len(func.parameters),
-                })
+                file_data["functions"].append(
+                    {
+                        "name": func.name,
+                        "line_start": func.line_start,
+                        "line_end": func.line_end,
+                        "cyclomatic": func.complexity.cyclomatic_complexity,
+                        "cognitive": func.complexity.cognitive_complexity,
+                        "nesting": func.complexity.nesting_depth,
+                        "loc": func.complexity.lines_of_code,
+                        "params": len(func.parameters),
+                    }
+                )
 
             data.append(file_data)
         return data
@@ -437,7 +454,7 @@ class ASTVisualizer:
         """生成 AST 树形可视化 HTML"""
         tree_json = json.dumps(tree_data, ensure_ascii=False)
         metrics = tree_data.get("metrics", {})
-        gen_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        gen_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         # Build HTML parts to avoid E501 in f-string templates
         html_head = f"""<!DOCTYPE html>
@@ -446,7 +463,7 @@ class ASTVisualizer:
 <meta charset="UTF-8">
 <meta name="viewport"
       content="width=device-width, initial-scale=1.0">
-<title>AST Tree - {tree_data['name']}</title>
+<title>AST Tree - {tree_data["name"]}</title>
 <style>
 * {{ margin: 0; padding: 0; box-sizing: border-box; }}
 body {{ font-family: -apple-system, BlinkMacSystemFont,
@@ -497,24 +514,24 @@ body {{ font-family: -apple-system, BlinkMacSystemFont,
 <body>
 <div class="header">
   <h1>AST Tree Visualization</h1>
-  <div class="meta">File: {tree_data['name']}
+  <div class="meta">File: {tree_data["name"]}
     | Generated: {gen_time}</div>
   <div class="metrics-bar">
     <div class="metric-card">
       <div class="label">Cyclomatic</div>
-      <div class="value">{metrics.get('cyclomatic', 0)}</div>
+      <div class="value">{metrics.get("cyclomatic", 0)}</div>
     </div>
     <div class="metric-card">
       <div class="label">Cognitive</div>
-      <div class="value">{metrics.get('cognitive', 0)}</div>
+      <div class="value">{metrics.get("cognitive", 0)}</div>
     </div>
     <div class="metric-card">
       <div class="label">Nesting</div>
-      <div class="value">{metrics.get('nesting', 0)}</div>
+      <div class="value">{metrics.get("nesting", 0)}</div>
     </div>
     <div class="metric-card">
       <div class="label">LOC</div>
-      <div class="value">{metrics.get('loc', 0)}</div>
+      <div class="value">{metrics.get("loc", 0)}</div>
     </div>
     <div class="metric-card">
       <div class="label">Functions</div>
@@ -632,7 +649,7 @@ document.getElementById('searchInput')
     def _generate_heatmap_html(self, data: List[Dict[str, Any]]) -> str:
         """生成复杂度热力图 HTML"""
         data_json = json.dumps(data, ensure_ascii=False)
-        gen_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        gen_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         html_head = f"""<!DOCTYPE html>
 <html lang="zh-CN">

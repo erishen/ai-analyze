@@ -137,9 +137,7 @@ class TestASTVisualizer(unittest.TestCase):
 
     def test_visualize_complexity_heatmap_html(self):
         """测试复杂度热力图 HTML"""
-        filepath = self.visualizer.visualize_complexity_heatmap(
-            [self.sample_result], output_format="html"
-        )
+        filepath = self.visualizer.visualize_complexity_heatmap([self.sample_result], output_format="html")
 
         self.assertTrue(Path(filepath).exists())
         content = Path(filepath).read_text(encoding="utf-8")
@@ -148,9 +146,7 @@ class TestASTVisualizer(unittest.TestCase):
 
     def test_visualize_complexity_heatmap_json(self):
         """测试复杂度热力图 JSON"""
-        filepath = self.visualizer.visualize_complexity_heatmap(
-            [self.sample_result], output_format="json"
-        )
+        filepath = self.visualizer.visualize_complexity_heatmap([self.sample_result], output_format="json")
 
         self.assertTrue(Path(filepath).exists())
         with open(filepath, "r", encoding="utf-8") as f:

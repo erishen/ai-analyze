@@ -2,8 +2,7 @@
 
 import logging
 
-
-from src.infrastructure.logger import UnifiedLogger, LoggerConfig
+from src.infrastructure.logger import LoggerConfig, UnifiedLogger
 
 
 class TestLoggerConfig:

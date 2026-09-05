@@ -3,11 +3,11 @@
 用于测试和比较系统性能
 """
 
-import time
-import statistics
-from typing import Callable, List, Dict, Any, Optional
-from dataclasses import dataclass, field
 import logging
+import statistics
+import time
+from dataclasses import dataclass, field
+from typing import Any, Callable, Dict, List, Optional
 
 
 @dataclass

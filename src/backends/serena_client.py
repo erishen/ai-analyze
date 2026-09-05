@@ -19,10 +19,7 @@ def _check_serena_available() -> None:
     """检查 serena 是否配置"""
     serena_dir = os.getenv("SERENA_DIR", "")
     if not serena_dir or not Path(serena_dir).exists():
-        raise ImportError(
-            "serena 未安装或 SERENA_DIR 未配置。"
-            "请安装 serena 并在 .env 中设置 SERENA_DIR。"
-        )
+        raise ImportError("serena 未安装或 SERENA_DIR 未配置。请安装 serena 并在 .env 中设置 SERENA_DIR。")
 
 
 class SerenaClient:
@@ -52,6 +49,7 @@ class SerenaClient:
         if loop and loop.is_running():
             # 已在异步上下文中，创建新线程运行
             import concurrent.futures
+
             with concurrent.futures.ThreadPoolExecutor() as pool:
                 future = pool.submit(asyncio.run, coro)
                 return future.result()
@@ -83,6 +81,7 @@ class SerenaClient:
         Returns:
             查找结果字典
         """
+
         async def _find():
             async with await self._get_client() as client:
                 return await client.find_symbol(
@@ -113,6 +112,7 @@ class SerenaClient:
         Returns:
             引用列表
         """
+
         async def _find_refs():
             async with await self._get_client() as client:
                 return await client.find_referencing_symbols(
@@ -139,6 +139,7 @@ class SerenaClient:
         Returns:
             符号概览字典
         """
+
         async def _overview():
             async with await self._get_client() as client:
                 return await client.get_symbols_overview(relative_path, depth=depth)
@@ -170,6 +171,7 @@ class SerenaClient:
         Returns:
             搜索结果字典
         """
+
         async def _search():
             async with await self._get_client() as client:
                 return await client.search_for_pattern(
@@ -195,6 +197,7 @@ class SerenaClient:
         Returns:
             查找结果字典
         """
+
         async def _find_file():
             async with await self._get_client() as client:
                 return await client.find_file(file_mask, relative_path)
@@ -217,7 +220,9 @@ class SerenaClient:
         relative_path: str,
     ) -> dict[str, Any]:
         """替换符号体（需要 SerenaBackend 支持）"""
-        raise NotImplementedError("replace_symbol_body requires direct Serena integration. Use SerenaStdioClient directly.")
+        raise NotImplementedError(
+            "replace_symbol_body requires direct Serena integration. Use SerenaStdioClient directly."
+        )
 
 
 def main():

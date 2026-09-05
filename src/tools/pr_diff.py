@@ -9,12 +9,10 @@ PR Diff 分析模块
 3. 输出增量质量评估报告
 """
 
-import json
 import logging
 import os
 import subprocess
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any, Optional
 
 from ..backends.language_backend import BackendFactory
@@ -25,6 +23,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class DiffHunk:
     """代码变更块"""
+
     file_path: str
     old_start: int
     old_lines: int
@@ -37,6 +36,7 @@ class DiffHunk:
 @dataclass
 class FileDiff:
     """文件变更"""
+
     file_path: str
     change_type: str  # added, deleted, modified, renamed
     hunks: list[DiffHunk] = field(default_factory=list)
@@ -47,6 +47,7 @@ class FileDiff:
 @dataclass
 class PRDiffResult:
     """PR Diff 分析结果"""
+
     total_files: int = 0
     total_additions: int = 0
     total_deletions: int = 0
@@ -116,13 +117,15 @@ def parse_git_diff(diff_output: str) -> list[FileDiff]:
                         old_start = int(minus_part)
                         old_lines = 1
 
-                    current_file.hunks.append(DiffHunk(
-                        file_path=current_file.file_path,
-                        old_start=old_start,
-                        old_lines=old_lines,
-                        new_start=new_start,
-                        new_lines=new_lines,
-                    ))
+                    current_file.hunks.append(
+                        DiffHunk(
+                            file_path=current_file.file_path,
+                            old_start=old_start,
+                            old_lines=old_lines,
+                            new_start=new_start,
+                            new_lines=new_lines,
+                        )
+                    )
                 except (ValueError, IndexError):
                     pass
 
@@ -230,8 +233,20 @@ def analyze_pr_diff(
 
     # 只分析有新增/修改的代码文件
     analyzable_extensions = {
-        ".py", ".js", ".ts", ".jsx", ".tsx", ".go", ".java",
-        ".cpp", ".cc", ".c", ".h", ".rs", ".rb", ".php",
+        ".py",
+        ".js",
+        ".ts",
+        ".jsx",
+        ".tsx",
+        ".go",
+        ".java",
+        ".cpp",
+        ".cc",
+        ".c",
+        ".h",
+        ".rs",
+        ".rb",
+        ".php",
     }
 
     # 获取 git 仓库根目录，用于拼接 diff 中的相对路径
@@ -263,17 +278,20 @@ def analyze_pr_diff(
         try:
             analysis = backend.analyze_file(full_path)
             # 转换为字典
-            from dataclasses import asdict
-            result.analysis_results.append({
-                "file_path": file_diff.file_path,
-                "change_type": file_diff.change_type,
-                "additions": file_diff.additions,
-                "deletions": file_diff.deletions,
-                "functions": len(analysis.functions),
-                "classes": len(analysis.classes),
-                "code_smells": len(analysis.code_smells),
-                "complexity": analysis.overall_complexity.cyclomatic_complexity if analysis.overall_complexity else 0,
-            })
+            result.analysis_results.append(
+                {
+                    "file_path": file_diff.file_path,
+                    "change_type": file_diff.change_type,
+                    "additions": file_diff.additions,
+                    "deletions": file_diff.deletions,
+                    "functions": len(analysis.functions),
+                    "classes": len(analysis.classes),
+                    "code_smells": len(analysis.code_smells),
+                    "complexity": analysis.overall_complexity.cyclomatic_complexity
+                    if analysis.overall_complexity
+                    else 0,
+                }
+            )
         except Exception as e:
             logger.warning(f"Failed to analyze {file_diff.file_path}: {e}")
 
@@ -321,7 +339,9 @@ def _generate_recommendation(smells: int, files_with_smells: int, additions: int
     elif smells <= 3:
         parts.append(f"Minor issues: {smells} code smell(s) in {files_with_smells} file(s). Consider quick review.")
     else:
-        parts.append(f"Significant issues: {smells} code smell(s) in {files_with_smells} file(s). Thorough review recommended.")
+        parts.append(
+            f"Significant issues: {smells} code smell(s) in {files_with_smells} file(s). Thorough review recommended."
+        )
 
     if additions > 500:
         parts.append("Large PR (>500 additions). Consider splitting into smaller PRs.")

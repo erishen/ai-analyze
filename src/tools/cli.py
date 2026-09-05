@@ -9,13 +9,30 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-
-for name in ("src.analyzers.ast_rules", "src.analyzers.tech_debt", "src.analyzers.quality_score", "src.analyzers.security_scanner", "src"):
+for name in (
+    "src.analyzers.ast_rules",
+    "src.analyzers.tech_debt",
+    "src.analyzers.quality_score",
+    "src.analyzers.security_scanner",
+    "src",
+):
     logging.getLogger(name).setLevel(logging.WARNING)
 
 _SCRIPT = Path(__file__).resolve().parent.parent.parent / "tools" / "ast_analyzer_tool.py"
 
-EXCLUDE_DIRS = {".venv", "venv", "__pycache__", ".git", "node_modules", ".ruff_cache", ".mypy_cache", ".pytest_cache", ".cache", "htmlcov", ".eggs"}
+EXCLUDE_DIRS = {
+    ".venv",
+    "venv",
+    "__pycache__",
+    ".git",
+    "node_modules",
+    ".ruff_cache",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".cache",
+    "htmlcov",
+    ".eggs",
+}
 
 
 def _aggregate_smells(file_result) -> tuple[list, list]:
@@ -55,15 +72,17 @@ def _build_summary_results(p: Path, file_results: list) -> dict:
             severity_counter[smell.severity] += 1
             smell_counter[smell.name] += 1
 
-        file_entries.append({
-            "file_path": f_r.file_path,
-            "cyclomatic_complexity": f_r.overall_complexity.cyclomatic_complexity,
-            "lines_of_code": f_r.overall_complexity.lines_of_code,
-            "total_lines": f_r.total_lines,
-            "functions": len(f_r.functions),
-            "classes": len(f_r.classes),
-            "code_smells": len(all_smells),
-        })
+        file_entries.append(
+            {
+                "file_path": f_r.file_path,
+                "cyclomatic_complexity": f_r.overall_complexity.cyclomatic_complexity,
+                "lines_of_code": f_r.overall_complexity.lines_of_code,
+                "total_lines": f_r.total_lines,
+                "functions": len(f_r.functions),
+                "classes": len(f_r.classes),
+                "code_smells": len(all_smells),
+            }
+        )
 
     total_files = len(file_results)
     total_functions = sum(len(f_r.functions) for f_r in file_results)
@@ -167,6 +186,7 @@ def _run_ast(project_path: str, output: Optional[str] = None, patterns=None, sar
     # 保存到 SQLite（包含 summary）
     try:
         from .data_store import AnalysisStore
+
         store = AnalysisStore()
         summary = _build_summary_results(p, file_results)
         raw_results["summary"] = summary
@@ -183,17 +203,24 @@ def _run_ast(project_path: str, output: Optional[str] = None, patterns=None, sar
     # SARIF 输出
     if sarif:
         from ..reports.sarif_report import write_sarif
+
         sarif_path = output_path.with_suffix(".sarif")
         write_sarif(raw_results, str(sarif_path), project_path=str(p))
         print(f"SARIF report: {sarif_path}")
 
     summary = _build_summary_results(p, file_results)
 
-    print(json.dumps({
-        "project_path": str(p),
-        "summary": summary,
-        "report_file": str(output_path),
-    }, indent=2, ensure_ascii=False))
+    print(
+        json.dumps(
+            {
+                "project_path": str(p),
+                "summary": summary,
+                "report_file": str(output_path),
+            },
+            indent=2,
+            ensure_ascii=False,
+        )
+    )
 
 
 def main():
@@ -205,13 +232,18 @@ def main():
     ast_p.add_argument("project_path", help="Path to the project to analyze")
     ast_p.add_argument("--output", "-o", help="Output JSON file path (default: auto-generated)")
     ast_p.add_argument("--sarif", action="store_true", help="Also output SARIF format for GitHub Code Scanning")
-    ast_p.add_argument("--patterns", nargs="+", default=["**/*.py", "**/*.js", "**/*.ts", "**/*.tsx", "**/*.jsx"],
-                       help="File glob patterns to include (default: **/*.py, **/*.js, **/*.ts, **/*.tsx, **/*.jsx)")
+    ast_p.add_argument(
+        "--patterns",
+        nargs="+",
+        default=["**/*.py", "**/*.js", "**/*.ts", "**/*.tsx", "**/*.jsx"],
+        help="File glob patterns to include (default: **/*.py, **/*.js, **/*.ts, **/*.tsx, **/*.jsx)",
+    )
 
     # serve 子命令
     serve_p = sub.add_parser("serve", help="Start MCP server for AI agent integration")
-    serve_p.add_argument("--transport", choices=["stdio", "sse"], default="stdio",
-                         help="Transport protocol (default: stdio)")
+    serve_p.add_argument(
+        "--transport", choices=["stdio", "sse"], default="stdio", help="Transport protocol (default: stdio)"
+    )
     serve_p.add_argument("--host", default="0.0.0.0", help="Host for SSE transport (default: 0.0.0.0)")
     serve_p.add_argument("--port", type=int, default=8000, help="Port for SSE transport (default: 8000)")
 
@@ -240,20 +272,23 @@ def main():
         _run_ast(args.project_path, output=args.output, patterns=args.patterns, sarif=args.sarif)
     elif args.command == "serve":
         from ..server.mcp_server import main as mcp_main
+
         mcp_main(transport=args.transport, host=args.host, port=args.port)
     elif args.command == "history":
         from .data_store import AnalysisStore
+
         store = AnalysisStore()
         records = store.get_latest(args.project_name, analysis_type=args.analysis_type, limit=args.limit)
         print(json.dumps(records, indent=2, ensure_ascii=False, default=str))
     elif args.command == "trend":
         from .data_store import AnalysisStore
+
         store = AnalysisStore()
         trend = store.get_trend(args.project_name, args.analysis_type, args.metric, limit=args.limit)
         print(json.dumps(trend, indent=2, ensure_ascii=False))
     elif args.command == "diff":
         from .pr_diff import analyze_pr_diff
-        from dataclasses import asdict
+
         result = analyze_pr_diff(args.project_path, base=args.base, head=args.head)
         output = {
             "total_files": result.total_files,

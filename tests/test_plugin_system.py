@@ -10,8 +10,12 @@ if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
 from src.tools.plugin_system import (  # noqa: E402
-    PluginContext, PluginManager, PluginResult,
-    PluginInfo, ComplexityHotspotPlugin, FileStatsPlugin,
+    ComplexityHotspotPlugin,
+    FileStatsPlugin,
+    PluginContext,
+    PluginInfo,
+    PluginManager,
+    PluginResult,
 )
 
 

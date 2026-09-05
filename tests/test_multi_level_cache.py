@@ -15,11 +15,10 @@ if _project_root not in sys.path:
 
 from src.infrastructure.multi_level_cache import (  # noqa: E402
     CacheEntry,
-    MemoryCacheBackend,
     FileCacheBackend,
+    MemoryCacheBackend,
     MultiLevelCache,
 )
-
 
 # ==================== CacheEntry 测试 ====================
 

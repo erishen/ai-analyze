@@ -14,8 +14,7 @@ _project_root = str(Path(__file__).parent.parent)
 if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
-from src.backends.serena_stdio_client import StdioMCPClient, SerenaStdioClient  # noqa: E402
-
+from src.backends.serena_stdio_client import SerenaStdioClient, StdioMCPClient  # noqa: E402
 
 # ==================== StdioMCPClient Mock 测试 ====================
 
@@ -102,9 +101,11 @@ class TestSerenaStdioClient:
         """测试上下文管理器调用连接"""
         client = SerenaStdioClient(project_path="/test")
 
-        with patch.object(client.mcp_client, "__aenter__", new_callable=AsyncMock) as mock_enter, patch.object(
-            client.mcp_client, "__aexit__", new_callable=AsyncMock
-        ), patch.object(client, "_ensure_initialized", new_callable=AsyncMock):
+        with (
+            patch.object(client.mcp_client, "__aenter__", new_callable=AsyncMock) as mock_enter,
+            patch.object(client.mcp_client, "__aexit__", new_callable=AsyncMock),
+            patch.object(client, "_ensure_initialized", new_callable=AsyncMock),
+        ):
             mock_enter.return_value = client.mcp_client
             async with client as c:
                 assert c is client
@@ -115,9 +116,11 @@ class TestSerenaStdioClient:
         """测试上下文管理器退出时关闭"""
         client = SerenaStdioClient(project_path="/test")
 
-        with patch.object(client.mcp_client, "__aenter__", new_callable=AsyncMock), patch.object(
-            client.mcp_client, "__aexit__", new_callable=AsyncMock
-        ) as mock_exit, patch.object(client, "_ensure_initialized", new_callable=AsyncMock):
+        with (
+            patch.object(client.mcp_client, "__aenter__", new_callable=AsyncMock),
+            patch.object(client.mcp_client, "__aexit__", new_callable=AsyncMock) as mock_exit,
+            patch.object(client, "_ensure_initialized", new_callable=AsyncMock),
+        ):
             async with client:
                 pass
             mock_exit.assert_called_once()
@@ -261,9 +264,10 @@ class TestStdioMCPClientConnection:
         """测试 StdioMCPClient 上下文管理器"""
         client = StdioMCPClient(server_command=["uv", "run", "serena"])
 
-        with patch.object(client, "connect", new_callable=AsyncMock) as mock_connect, patch.object(
-            client, "close", new_callable=AsyncMock
-        ) as mock_close:
+        with (
+            patch.object(client, "connect", new_callable=AsyncMock) as mock_connect,
+            patch.object(client, "close", new_callable=AsyncMock) as mock_close,
+        ):
             async with client as c:
                 assert c is client
                 mock_connect.assert_called_once()

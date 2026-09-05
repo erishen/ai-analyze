@@ -31,7 +31,8 @@ dependencies = [
     "tree-sitter>=0.23.0",
     "tree-sitter-language-pack>=1.3.0",
     "astroid>=3.0.0",
-    "mcp>=1.0.0",
+    # mcp 2.x 把 FastMCP 改名为 MCPServer 并改了 API，本项目仍是 v1 写法，先钉在 1.x
+    "mcp>=1.0.0,<2.0.0",
 ]
 
 [project.optional-dependencies]
@@ -51,7 +52,7 @@ redis = [
 ]
 serena = [
     "python-dotenv>=1.0.0",
-    "mcp>=1.0.0",
+    "mcp>=1.0.0,<2.0.0",
 ]
 
 [project.scripts]
@@ -74,6 +75,10 @@ target-version = "py310"
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]
 ignore = ["E203"]
+
+# 各包的 __init__.py 只做 re-export，导入即对外 API，不能按"未使用"删掉
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
 
 [tool.mypy]
 python_version = "3.10"
