@@ -176,4 +176,4 @@ make format
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).
